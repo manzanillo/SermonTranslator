@@ -1,5 +1,9 @@
 ﻿const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
@@ -10,12 +14,216 @@ const prisma = new PrismaClient();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+app.use(cookieParser());
+
+// Rate Limiting Middleware
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: 'Too many login attempts, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 registrations per hour
+  message: 'Too many registrations, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Password Validation Helper
+const validatePassword = (password) => {
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  return passwordRegex.test(password);
+};
+
+// JWT Authentication Middleware
+const authenticate = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// ============================================================================
+// AUTHENTICATION ROUTES
+// ============================================================================
+
+// POST /api/auth/register
+app.post('/api/auth/register', registerLimiter, async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  // Validate required fields
+  if (!name || !email || !password || !role) {
+    return res.status(400).json({
+      error: 'Missing required fields',
+      required: ['name', 'email', 'password', 'role']
+    });
+  }
+
+  // Validate role
+  if (!['imam', 'listener'].includes(role)) {
+    return res.status(400).json({
+      error: 'Invalid role. Must be "imam" or "listener"'
+    });
+  }
+
+  // Validate password strength
+  if (!validatePassword(password)) {
+    return res.status(400).json({
+      error: 'Password must be at least 8 characters and contain uppercase letter, lowercase letter, number, and special character (@$!%*?&)'
+    });
+  }
+
+  try {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'Email already registered'
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user
+    const newUser = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashedPassword,
+        role: role.trim()
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true
+      }
+    });
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      user: newUser
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+// POST /api/auth/login
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
+  const { email, password } = req.body;
+
+  // Validate required fields
+  if (!email || !password) {
+    return res.status(400).json({
+      error: 'Email and password are required'
+    });
+  }
+
+  try {
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    });
+
+    // Check if user exists and password is correct
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({
+        error: 'Invalid email or password'
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Set HttpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    });
+
+    res.status(200).json({
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+// POST /api/auth/logout
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  res.status(200).json({ message: 'Logout successful' });
+});
+
+// GET /api/auth/me - Get current user info
+app.get('/api/auth/me', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
 
 // ============================================================================
 // POST /api/users - Create a new user
 // ============================================================================
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', authenticate, async (req, res) => {
   const { name, role } = req.body;
 
   // Validate required fields
@@ -53,7 +261,7 @@ app.post('/api/users', async (req, res) => {
 // ============================================================================
 // GET /api/users - Get all users
 // ============================================================================
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', authenticate, async (req, res) => {
   try {
     const users = await prisma.user.findMany();
     res.status(200).json(users);
@@ -65,38 +273,39 @@ app.get('/api/users', async (req, res) => {
 // ============================================================================
 // POST /api/sessions - Create a new session
 // ============================================================================
-app.post('/api/sessions', async (req, res) => {
-  const { imamId, title } = req.body;
+app.post('/api/sessions', authenticate, async (req, res) => {
+  const { title } = req.body;
+  const userId = req.user.userId;
 
   // Validate required fields
-  if (!imamId || !title) {
+  if (!title) {
     return res.status(400).json({
       error: 'Missing required fields',
-      required: ['imamId', 'title']
+      required: ['title']
     });
   }
 
   try {
-    // Verify imam exists
-    const imam = await prisma.user.findUnique({
-      where: { id: parseInt(imamId) }
+    // Verify user exists and is an imam
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
     });
 
-    if (!imam) {
+    if (!user) {
       return res.status(400).json({
-        error: 'Invalid imamId - user does not exist'
+        error: 'User does not exist'
       });
     }
 
-    if (imam.role !== 'imam') {
-      return res.status(400).json({
-        error: 'User must have role "imam" to create a session'
+    if (user.role !== 'imam') {
+      return res.status(403).json({
+        error: 'Only imams can create sessions'
       });
     }
 
     const newSession = await prisma.session.create({
       data: {
-        imamId: parseInt(imamId),
+        imamId: userId,
         title: title.trim()
       },
       include: {
@@ -111,6 +320,7 @@ app.post('/api/sessions', async (req, res) => {
       session: newSession
     });
   } catch (error) {
+    console.error('Session creation error:', error);
     res.status(500).json({ error: 'Failed to create session' });
   }
 });
@@ -118,7 +328,7 @@ app.post('/api/sessions', async (req, res) => {
 // ============================================================================
 // GET /api/sessions - Get all sessions
 // ============================================================================
-app.get('/api/sessions', async (req, res) => {
+app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const sessions = await prisma.session.findMany({
       include: {
@@ -136,7 +346,7 @@ app.get('/api/sessions', async (req, res) => {
 // ============================================================================
 // GET /api/sessions/:id - Get session by ID
 // ============================================================================
-app.get('/api/sessions/:id', async (req, res) => {
+app.get('/api/sessions/:id', authenticate, async (req, res) => {
   const { id } = req.params;
   try {
     const session = await prisma.session.findUnique({
@@ -164,7 +374,7 @@ app.get('/api/sessions/:id', async (req, res) => {
 // ============================================================================
 // GET /api/translations - Returns all translations
 // ============================================================================
-app.get('/api/translations', async (req, res) => {
+app.get('/api/translations', authenticate, async (req, res) => {
   try {
     const translations = await prisma.translation.findMany({
       include: {
@@ -180,7 +390,7 @@ app.get('/api/translations', async (req, res) => {
 // ============================================================================
 // GET /api/translations/:id - Returns a translation by ID
 // ============================================================================
-app.get('/api/translations/:id', async (req, res) => {
+app.get('/api/translations/:id', authenticate, async (req, res) => {
   const { id } = req.params;
   try {
     const translation = await prisma.translation.findUnique({
@@ -206,7 +416,7 @@ app.get('/api/translations/:id', async (req, res) => {
 // ============================================================================
 // POST /api/translations - Creates a new translation
 // ============================================================================
-app.post('/api/translations', async (req, res) => {
+app.post('/api/translations', authenticate, async (req, res) => {
   const { sessionId, originalText, translatedText, language } = req.body;
 
   // Validate required fields
@@ -224,7 +434,7 @@ app.post('/api/translations', async (req, res) => {
   }
 
   try {
-    // Verify session exists
+    // Verify session exists and user has access
     const session = await prisma.session.findUnique({
       where: { id: parseInt(sessionId) }
     });
@@ -232,6 +442,13 @@ app.post('/api/translations', async (req, res) => {
     if (!session) {
       return res.status(400).json({
         error: 'Invalid sessionId - session does not exist'
+      });
+    }
+
+    // Check if user is the imam of this session
+    if (session.imamId !== req.user.userId) {
+      return res.status(403).json({
+        error: 'Access denied - you can only add translations to your own sessions'
       });
     }
 
@@ -260,7 +477,7 @@ app.post('/api/translations', async (req, res) => {
 // ============================================================================
 // PUT /api/translations/:id - Completely replaces an existing translation
 // ============================================================================
-app.put('/api/translations/:id', async (req, res) => {
+app.put('/api/translations/:id', authenticate, async (req, res) => {
   const { id } = req.params;
   const { sessionId, originalText, translatedText, language } = req.body;
 
@@ -279,7 +496,7 @@ app.put('/api/translations/:id', async (req, res) => {
   }
 
   try {
-    // Verify session exists
+    // Verify session exists and user has access
     const session = await prisma.session.findUnique({
       where: { id: parseInt(sessionId) }
     });
@@ -287,6 +504,13 @@ app.put('/api/translations/:id', async (req, res) => {
     if (!session) {
       return res.status(400).json({
         error: 'Invalid sessionId - session does not exist'
+      });
+    }
+
+    // Check if user is the imam of this session
+    if (session.imamId !== req.user.userId) {
+      return res.status(403).json({
+        error: 'Access denied - you can only modify translations in your own sessions'
       });
     }
 
@@ -322,10 +546,30 @@ app.put('/api/translations/:id', async (req, res) => {
 // ============================================================================
 // DELETE /api/translations/:id - Deletes a translation
 // ============================================================================
-app.delete('/api/translations/:id', async (req, res) => {
+app.delete('/api/translations/:id', authenticate, async (req, res) => {
   const { id } = req.params;
 
   try {
+    // First, find the translation to check ownership
+    const translation = await prisma.translation.findUnique({
+      where: { id: parseInt(id) },
+      include: { session: true }
+    });
+
+    if (!translation) {
+      return res.status(404).json({
+        error: 'Translation not found',
+        id: parseInt(id)
+      });
+    }
+
+    // Check if user is the imam of the session
+    if (translation.session.imamId !== req.user.userId) {
+      return res.status(403).json({
+        error: 'Access denied - you can only delete translations from your own sessions'
+      });
+    }
+
     await prisma.translation.delete({
       where: { id: parseInt(id) }
     });

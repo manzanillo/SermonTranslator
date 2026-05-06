@@ -41,6 +41,9 @@ jspm_packages/
 # Optional REPL history
 .node_repl_history
 
+# Local Prisma development database
+server/prisma/dev.db
+
 # Output of 'npm pack'
 *.tgz
 
