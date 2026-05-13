@@ -74,5 +74,6 @@ Thumbs.db
 *.tmp
 *.temp
 
+dist/
 
 dev.db-journal
