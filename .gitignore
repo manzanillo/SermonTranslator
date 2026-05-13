@@ -73,3 +73,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+
+dev.db-journal
