@@ -5,6 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "all": "npm install && npm run prisma:generate && npm run prisma:migrate && npm run dev",
     "dev": "nodemon server.js"
   },
   "dependencies": {
