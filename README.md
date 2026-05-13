@@ -44,12 +44,15 @@ A real-time sermon translation application that converts spoken Turkish into Ger
    npm start
    ```
 
-4. **(Optional) Start the Translation API server** (REST API for managing translations):
+4. **Start the backend server** (Socket.IO + REST API):
    ```bash
    cd server
-   node translations-api.js
+   npm install
+   npm run prisma:generate
+   npm run prisma:migrate
+   npm start
    ```
-   The API will be available at `http://localhost:3001/api/translations`
+   The server will be available at `http://localhost:3001` with both Socket.IO and REST API endpoints
 
 5. Start the frontend development server:
    ```bash
@@ -260,7 +263,7 @@ A complete Postman collection is provided for easy API testing:
    - All requests are ready to use
 
 4. **Run requests:**
-   - Make sure the API server is running (`node translations-api.js`)
+   - Make sure the backend server is running (`npm start` in the server directory)
    - The base URL is pre-configured as `http://localhost:3001`
    - Click any request and send to test the endpoint
 
