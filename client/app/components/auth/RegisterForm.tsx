@@ -14,6 +14,13 @@ interface FormState {
   role: string
 }
 
+interface FieldErrors {
+  name?: string
+  email?: string
+  password?: string
+  role?: string
+}
+
 const initialState: FormState = {
   name: '',
   email: '',
@@ -21,22 +28,52 @@ const initialState: FormState = {
   role: '',
 }
 
+const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
 export default function RegisterForm() {
   const [form, setForm] = useState<FormState>(initialState)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   const handleChange = (field: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }))
+    setFieldErrors((prev) => ({ ...prev, [field]: '' }))
+  }
+
+  const validateForm = () => {
+    const nextErrors: FieldErrors = {}
+
+    if (!form.name.trim()) {
+      nextErrors.name = 'Please enter your full name.'
+    }
+
+    if (!form.email.trim()) {
+      nextErrors.email = 'Please enter your email address.'
+    } else if (!validateEmail(form.email.trim())) {
+      nextErrors.email = 'Please provide a valid email address.'
+    }
+
+    if (!form.password) {
+      nextErrors.password = 'Please create a password.'
+    } else if (form.password.length < 8) {
+      nextErrors.password = 'Password must be at least 8 characters.'
+    }
+
+    if (!form.role) {
+      nextErrors.role = 'Please select an account type.'
+    }
+
+    setFieldErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
 
-    if (!form.role) {
-      setError('Please choose a role before continuing.')
+    if (!validateForm()) {
       return
     }
 
@@ -84,8 +121,15 @@ export default function RegisterForm() {
             placeholder="Enter your full name"
             value={form.name}
             onChange={(event) => handleChange('name', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? 'name-error' : undefined}
             required
           />
+          {fieldErrors.name ? (
+            <p id="name-error" className="mt-2 text-sm text-[#9b2c2c]">
+              {fieldErrors.name}
+            </p>
+          ) : null}
         </div>
 
         <div>
@@ -100,8 +144,15 @@ export default function RegisterForm() {
             placeholder="name@example.com"
             value={form.email}
             onChange={(event) => handleChange('email', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? 'email-error' : undefined}
             required
           />
+          {fieldErrors.email ? (
+            <p id="email-error" className="mt-2 text-sm text-[#9b2c2c]">
+              {fieldErrors.email}
+            </p>
+          ) : null}
         </div>
 
         <div>
@@ -116,11 +167,19 @@ export default function RegisterForm() {
             placeholder="Create a secure password"
             value={form.password}
             onChange={(event) => handleChange('password', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? 'password-error' : undefined}
             required
           />
-          <p className="mt-2 text-xs text-[#516a51]">
-            Use at least 8 characters, including uppercase, lowercase, and a number.
-          </p>
+          {fieldErrors.password ? (
+            <p id="password-error" className="mt-2 text-sm text-[#9b2c2c]">
+              {fieldErrors.password}
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-[#516a51]">
+              Use at least 8 characters, including uppercase, lowercase, and a number.
+            </p>
+          )}
         </div>
 
         <div>
@@ -132,12 +191,19 @@ export default function RegisterForm() {
             name="role"
             value={form.role}
             onChange={(event) => handleChange('role', event.target.value)}
+            aria-invalid={Boolean(fieldErrors.role)}
+            aria-describedby={fieldErrors.role ? 'role-error' : undefined}
             required
           >
             <option value="">Select a role</option>
             <option value="imam">Imam</option>
             <option value="listener">Listener</option>
           </Select>
+          {fieldErrors.role ? (
+            <p id="role-error" className="mt-2 text-sm text-[#9b2c2c]">
+              {fieldErrors.role}
+            </p>
+          ) : null}
         </div>
       </div>
 

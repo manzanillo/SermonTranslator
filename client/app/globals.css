@@ -1,15 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Noto+Serif:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background-color: #faf9f8;
-  color: #1a1c1c;
-  font-family: 'Manrope', sans-serif;
+:root {
+  color-scheme: light;
+  background-color: #fffdeb;
+  font-family: 'Public Sans', sans-serif;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Noto Serif', serif;
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: linear-gradient(180deg, #DCFFE3 0%, #FFFDEB 100%);
+  color: #0c3b28;
+  font-family: 'Public Sans', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'EB Garamond', serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(24, 191, 35, 0.18);
 }

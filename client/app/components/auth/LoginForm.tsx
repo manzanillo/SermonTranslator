@@ -6,16 +6,46 @@ import { authFetch } from '../../utils/auth'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 
+interface FieldErrors {
+  email?: string
+  password?: string
+}
+
+const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
 export default function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  const validateForm = () => {
+    const nextErrors: FieldErrors = {}
+
+    if (!email.trim()) {
+      nextErrors.email = 'Please enter your email address.'
+    } else if (!validateEmail(email.trim())) {
+      nextErrors.email = 'Please enter a valid email address.'
+    }
+
+    if (!password) {
+      nextErrors.password = 'Please enter your password.'
+    }
+
+    setFieldErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
+
+    if (!validateForm()) {
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -63,9 +93,19 @@ export default function LoginForm() {
             autoComplete="email"
             placeholder="name@example.com"
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => {
+              setEmail(event.target.value)
+              setFieldErrors((prev) => ({ ...prev, email: '' }))
+            }}
+            aria-invalid={Boolean(fieldErrors.email)}
+            aria-describedby={fieldErrors.email ? 'email-error' : undefined}
             required
           />
+          {fieldErrors.email ? (
+            <p id="email-error" className="mt-2 text-sm text-[#9b2c2c]">
+              {fieldErrors.email}
+            </p>
+          ) : null}
         </div>
 
         <div>
@@ -79,9 +119,19 @@ export default function LoginForm() {
             autoComplete="current-password"
             placeholder="Enter your password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => {
+              setPassword(event.target.value)
+              setFieldErrors((prev) => ({ ...prev, password: '' }))
+            }}
+            aria-invalid={Boolean(fieldErrors.password)}
+            aria-describedby={fieldErrors.password ? 'password-error' : undefined}
             required
           />
+          {fieldErrors.password ? (
+            <p id="password-error" className="mt-2 text-sm text-[#9b2c2c]">
+              {fieldErrors.password}
+            </p>
+          ) : null}
         </div>
       </div>
 

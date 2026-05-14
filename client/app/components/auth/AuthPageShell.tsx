@@ -11,16 +11,19 @@ interface AuthPageShellProps {
 
 export function AuthPageShell({ title, subtitle, children, footnote }: AuthPageShellProps) {
   return (
-    <main className="min-h-screen bg-[#eef7ec] px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-full max-w-5xl flex-col items-center justify-center gap-8">
+    <main className="relative min-h-screen overflow-hidden bg-[#eef7ec] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,_rgba(24,191,35,0.18),_transparent_55%)]" />
+      <div className="pointer-events-none absolute right-0 top-24 h-80 w-80 rounded-full bg-[#d9f5dd] blur-3xl" />
+
+      <div className="relative mx-auto flex min-h-full max-w-5xl flex-col items-center justify-center gap-8">
         <div className="w-full max-w-2xl text-center">
-          <span className="inline-flex rounded-full bg-[#f3fbf5] px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[#2d6a33] shadow-sm">
-            Welcome to Zermon
-          </span>
-          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-[#173925] sm:text-4xl">
+          <p className="text-sm font-semibold font-serif tracking-[-0.06em] text-brand">
+            Zermon
+          </p>
+          <h1 className="mt-6 text-6xl font-black tracking-[-0.04em] text-[#0c3b28] sm:text-7xl">
             {title}
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#2f4f34] sm:text-base">
+          <p className="mx-auto mt-6 max-w-2xl text-base font-medium leading-8 text-[#2f4f34] sm:text-lg">
             {subtitle}
           </p>
         </div>
