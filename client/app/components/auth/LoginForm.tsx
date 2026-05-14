@@ -1,0 +1,112 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { authFetch } from '../../utils/auth'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+
+export default function LoginForm() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await authFetch(
+        'http://localhost:3001/api/auth/login',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        },
+        false,
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Unable to sign in. Please check your credentials.')
+        return
+      }
+
+      if (data.user.role === 'imam') {
+        router.push('/imam')
+      } else {
+        router.push('/listener')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('Unable to reach the server. Please try again in a moment.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+      <div className="space-y-5">
+        <div>
+          <label htmlFor="email" className="mb-2 block text-sm font-medium text-[#244722]">
+            Email address
+          </label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="mb-2 block text-sm font-medium text-[#244722]">
+            Password
+          </label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-[#f5d0d0] bg-[#fff1f1] px-4 py-3 text-sm text-[#9b2c2c]" role="alert">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="space-y-4">
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? 'Signing in…' : 'Sign in'}
+        </Button>
+
+        <div className="text-center text-sm text-[#4c644f]">
+          New to Zermon?{' '}
+          <button
+            type="button"
+            onClick={() => router.push('/register')}
+            className="font-semibold text-[#2d6a33] underline decoration-[#cce5d1] underline-offset-4 hover:text-[#224f28]"
+          >
+            Create account
+          </button>
+        </div>
+      </div>
+    </form>
+  )
+}

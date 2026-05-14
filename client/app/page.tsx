@@ -25,7 +25,9 @@ export default function Page() {
           router.push('/login')
         }
       } catch (error) {
-        if (error.message === 'Unauthorized') {
+        const err = error as { message?: string }
+
+        if (err.message === 'Unauthorized') {
           router.push('/login')
         } else {
           console.error('Auth check failed:', error)
