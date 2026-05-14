@@ -12,8 +12,8 @@ interface AuthPageShellProps {
 export function AuthPageShell({ title, subtitle, children, footnote }: AuthPageShellProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#eef7ec] px-4 py-10 sm:px-6 lg:px-8">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,_rgba(24,191,35,0.18),_transparent_55%)]" />
-      <div className="pointer-events-none absolute right-0 top-24 h-80 w-80 rounded-full bg-[#d9f5dd] blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-full bg-[radial-gradient(circle_at_top,_rgba(24,191,35,0.18),_transparent_50%)]" />
+      <div className="pointer-events-none absolute -right-20 -top-10 h-[30rem] w-[30rem] rounded-full bg-[#d9f5dd]/60 blur-[120px]" />
 
       <div className="relative mx-auto flex min-h-full max-w-5xl flex-col items-center justify-center gap-8">
         <div className="w-full max-w-2xl text-center">
