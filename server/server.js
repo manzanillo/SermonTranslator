@@ -38,7 +38,7 @@ app.use(cookieParser());
 // ============================================================================
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: 12, // 12 attempts per window
   message: 'Too many login attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
@@ -46,7 +46,7 @@ const loginLimiter = rateLimit({
 
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 12, // 3 registrations per hour
+  max: 12, // 12 registrations per hour
   message: 'Too many registrations, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
