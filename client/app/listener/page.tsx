@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
-import Dashboard from '../components/dashboard/Dashboard'
+import LiveSermons from '../components/dashboard/LiveSermons'
 import { authFetch } from '../utils/auth'
 import { User } from '../types'
 
@@ -50,7 +50,7 @@ export default function ListenerPage() {
 
   return (
     <AppShell user={user}>
-      <Dashboard user={user} />
+      <LiveSermons user={user} />
     </AppShell>
   )
 }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { User } from '../../types'
 import SessionsList from './SessionsList'
 
-interface DashboardProps {
+interface LiveSermonsProps {
   user: User
 }
 
@@ -14,7 +14,7 @@ function getGreeting(name: string) {
   return `Good ${period}, ${name.split(' ')[0]}`
 }
 
-export default function Dashboard({ user }: DashboardProps) {
+export default function LiveSermons({ user }: LiveSermonsProps) {
   const router = useRouter()
   const isImam = user.role === 'imam'
 
