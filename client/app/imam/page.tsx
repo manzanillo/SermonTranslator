@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import SermonTranslator from '../components/SermonTranslator'
+import AppShell from '../components/dashboard/AppShell'
+import ImamDashboard from '../components/dashboard/ImamDashboard'
 import { authFetch } from '../utils/auth'
+import { User } from '../types'
 
 export default function ImamPage() {
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -14,42 +16,41 @@ export default function ImamPage() {
     const checkAuthorization = async () => {
       try {
         const response = await authFetch('http://localhost:3001/api/auth/me')
-
         if (response.ok) {
           const data = await response.json()
           if (data.user.role === 'imam') {
-            setIsAuthorized(true)
+            setUser(data.user)
           } else {
-            // User is listener, redirect to listener view
             router.push('/listener')
           }
         } else {
           router.push('/login')
         }
-      } catch (error) {
+      } catch {
         router.push('/login')
       } finally {
         setLoading(false)
       }
     }
-
     checkAuthorization()
   }, [router])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#eef7ec]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
+          <p className="mt-4 text-sm text-[#4c6e4e]">Loading…</p>
         </div>
       </div>
     )
   }
 
-  if (!isAuthorized) {
-    return null // Will redirect
-  }
+  if (!user) return null
 
-  return <SermonTranslator />
+  return (
+    <AppShell user={user}>
+      <ImamDashboard user={user} />
+    </AppShell>
+  )
 }

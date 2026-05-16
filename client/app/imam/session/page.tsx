@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import AppShell from '../components/dashboard/AppShell'
-import ListenerDashboard from '../components/dashboard/ListenerDashboard'
-import { authFetch } from '../utils/auth'
-import { User } from '../types'
+import SermonTranslator from '../../components/SermonTranslator'
+import { authFetch } from '../../utils/auth'
 
-export default function ListenerPage() {
-  const [user, setUser] = useState<User | null>(null)
+export default function ImamSessionPage() {
+  const [isAuthorized, setIsAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -18,10 +16,10 @@ export default function ListenerPage() {
         const response = await authFetch('http://localhost:3001/api/auth/me')
         if (response.ok) {
           const data = await response.json()
-          if (data.user.role === 'listener') {
-            setUser(data.user)
+          if (data.user.role === 'imam') {
+            setIsAuthorized(true)
           } else {
-            router.push('/imam')
+            router.push('/listener')
           }
         } else {
           router.push('/login')
@@ -38,19 +36,12 @@ export default function ListenerPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#eef7ec]">
-        <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
-          <p className="mt-4 text-sm text-[#4c6e4e]">Loading…</p>
-        </div>
+        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
       </div>
     )
   }
 
-  if (!user) return null
+  if (!isAuthorized) return null
 
-  return (
-    <AppShell user={user}>
-      <ListenerDashboard user={user} />
-    </AppShell>
-  )
+  return <SermonTranslator />
 }
