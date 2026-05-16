@@ -73,7 +73,7 @@ export default function Sidebar({ user }: SidebarProps) {
     <aside className="relative z-10 flex h-screen w-64 flex-shrink-0 flex-col bg-white/90 border-r border-[#dbeade] backdrop-blur-sm">
       {/* Logo */}
       <div className="px-6 pt-8 pb-6">
-        <p className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#0c3b28]">
+        <p className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">
           Zermon
         </p>
         <p className="mt-1 text-xs font-medium text-[#4c6e4e]">
