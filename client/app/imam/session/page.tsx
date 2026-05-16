@@ -49,10 +49,18 @@ export default function ActiveSessionPage() {
     // Start session on socket
     socketRef.current.emit('startSession', { sessionId: session.id })
 
-    // Timer
-    timerRef.current = setInterval(() => {
-      setSessionTime(prev => prev + 1)
-    }, 1000)
+    // Timer based on session creation time
+    if (session.createdAt) {
+      const startTimestamp = new Date(session.createdAt).getTime()
+      
+      // Initial set
+      setSessionTime(Math.floor((Date.now() - startTimestamp) / 1000))
+      
+      // Update every second
+      timerRef.current = setInterval(() => {
+        setSessionTime(Math.floor((Date.now() - startTimestamp) / 1000))
+      }, 1000)
+    }
 
     // Speech Recognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -113,13 +121,17 @@ export default function ActiveSessionPage() {
     }
     
     // Stop local resources
-    socketRef.current?.disconnect()
-    socketRef.current = null
     recognitionRef.current?.stop()
     if (timerRef.current) clearInterval(timerRef.current)
 
-    // Redirect
-    router.push('/imam')
+    // Delay disconnect and redirect to ensure socket emit goes through
+    setTimeout(() => {
+      if (socketRef.current) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+      }
+      router.push('/imam')
+    }, 300)
   }
 
   const formatTime = (seconds: number) => {
@@ -142,7 +154,7 @@ export default function ActiveSessionPage() {
       <div className="mx-auto w-full max-w-4xl pt-20 mb-12">
         {/* Back Button */}
         <button
-          onClick={handleEndSession}
+          onClick={() => router.push('/imam')}
           className="mb-8 w-max text-[#288C49] hover:text-[#1a6632] transition-colors"
           aria-label="Go back"
         >
