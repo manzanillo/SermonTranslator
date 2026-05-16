@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
-import ImamDashboard from '../components/dashboard/ImamDashboard'
+import Dashboard from '../components/dashboard/Dashboard'
 import { authFetch } from '../utils/auth'
 import { User } from '../types'
 
@@ -50,7 +50,7 @@ export default function ImamPage() {
 
   return (
     <AppShell user={user}>
-      <ImamDashboard user={user} />
+      <Dashboard user={user} />
     </AppShell>
   )
 }
