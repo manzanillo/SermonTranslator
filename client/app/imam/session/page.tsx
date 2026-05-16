@@ -1,47 +1,215 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import SermonTranslator from '../../components/SermonTranslator'
+import { io, Socket } from 'socket.io-client'
 import { authFetch } from '../../utils/auth'
+import { Session } from '../../types'
 
-export default function ImamSessionPage() {
-  const [isAuthorized, setIsAuthorized] = useState(false)
-  const [loading, setLoading] = useState(true)
+export default function ActiveSessionPage() {
   const router = useRouter()
+  const [session, setSession] = useState<Session | null>(null)
+  const [segments, setSegments] = useState<string[]>([])
+  const [sessionTime, setSessionTime] = useState(0)
+  
+  const socketRef = useRef<Socket | null>(null)
+  const recognitionRef = useRef<any>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Fetch active session on mount
   useEffect(() => {
-    const checkAuthorization = async () => {
+    const fetchSession = async () => {
       try {
-        const response = await authFetch('http://localhost:3001/api/auth/me')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.user.role === 'imam') {
-            setIsAuthorized(true)
-          } else {
-            router.push('/listener')
+        // Just fetch all sessions for simplicity, filter the active one for this user
+        const meRes = await authFetch('http://localhost:3001/api/auth/me')
+        if (!meRes.ok) throw new Error('Not auth')
+        const meData = await meRes.json()
+
+        const res = await authFetch('http://localhost:3001/api/sessions')
+        if (res.ok) {
+          const sessions = await res.json()
+          const active = sessions.find((s: Session) => s.imamId === meData.user.id && s.isActive)
+          if (active) {
+            setSession(active)
           }
-        } else {
-          router.push('/login')
         }
-      } catch {
-        router.push('/login')
-      } finally {
-        setLoading(false)
+      } catch (err) {
+        console.error(err)
       }
     }
-    checkAuthorization()
-  }, [router])
+    fetchSession()
+  }, [])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eef7ec]">
-        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
-      </div>
-    )
+  // Initialize Socket and Speech Recognition
+  useEffect(() => {
+    socketRef.current = io('http://localhost:3001') // Connect to backend
+    
+    // Start session on socket
+    socketRef.current.emit('startSession')
+
+    // Timer
+    timerRef.current = setInterval(() => {
+      setSessionTime(prev => prev + 1)
+    }, 1000)
+
+    // Speech Recognition
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition()
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
+      recognitionRef.current.lang = 'tr-TR' // Turkish
+
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' '
+          }
+        }
+        
+        finalTranscript = finalTranscript.trim()
+        if (finalTranscript) {
+          // Send to translation backend
+          socketRef.current?.emit('speech', { text: finalTranscript })
+          
+          // Add to local UI array
+          setSegments(prev => {
+            const updated = [...prev, finalTranscript]
+            // Keep only the last 4 segments
+            if (updated.length > 4) {
+              return updated.slice(updated.length - 4)
+            }
+            return updated
+          })
+        }
+      }
+
+      recognitionRef.current.onend = () => {
+        // Auto-restart if we haven't explicitly stopped
+        if (socketRef.current) {
+          recognitionRef.current?.start()
+        }
+      }
+      
+      // Start listening
+      recognitionRef.current.start()
+    }
+
+    return () => {
+      socketRef.current?.disconnect()
+      socketRef.current = null // indicate intentional stop
+      recognitionRef.current?.stop()
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [])
+
+  const handleEndSession = () => {
+    // End session in backend
+    socketRef.current?.emit('endSession')
+    
+    // Stop local resources
+    socketRef.current?.disconnect()
+    socketRef.current = null
+    recognitionRef.current?.stop()
+    if (timerRef.current) clearInterval(timerRef.current)
+
+    // Redirect
+    router.push('/imam')
   }
 
-  if (!isAuthorized) return null
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
 
-  return <SermonTranslator />
+  return (
+    <div className="flex min-h-screen flex-col bg-[#FFFDEB] px-8 py-8 relative">
+      {/* Top Logo */}
+      <div className="absolute top-8 left-0 right-0 flex justify-center pointer-events-none">
+        <h1 className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#0c3b28]">
+          Zermon
+        </h1>
+      </div>
+
+      {/* Header Container */}
+      <div className="mx-auto w-full max-w-4xl pt-20 mb-12">
+        {/* Back Button */}
+        <button
+          onClick={handleEndSession}
+          className="mb-8 w-max text-[#288C49] hover:text-[#1a6632] transition-colors"
+          aria-label="Go back"
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+
+        {/* Info Row */}
+        <div className="flex items-center justify-between text-sm font-medium text-[#288C49]">
+          <div className="w-1/3 truncate">
+            {session ? session.title : 'Loading...'}
+          </div>
+          <div className="w-1/3 text-center">
+            Speak to translate
+          </div>
+          <div className="w-1/3 text-right flex items-center justify-end gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></div>
+            {formatTime(sessionTime)}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Transcript Content */}
+      <div className="mx-auto flex flex-1 w-full max-w-4xl flex-col justify-end pb-24 relative overflow-hidden">
+        <div className="flex flex-col gap-6 w-full font-serif text-[#144f2d]">
+          {segments.length === 0 && (
+            <p className="text-4xl sm:text-5xl font-bold text-[#144f2d]/30 text-center animate-pulse">
+              Waiting for speech...
+            </p>
+          )}
+
+          {/* Level 4 (Oldest) */}
+          {segments.length >= 4 && (
+            <p className="text-sm font-medium leading-relaxed opacity-40 transition-all duration-500">
+              {segments[segments.length - 4]}
+            </p>
+          )}
+
+          {/* Level 3 */}
+          {segments.length >= 3 && (
+            <p className="text-xl font-medium leading-relaxed opacity-60 transition-all duration-500">
+              {segments[segments.length - 3]}
+            </p>
+          )}
+
+          {/* Level 2 */}
+          {segments.length >= 2 && (
+            <p className="text-3xl font-semibold leading-tight opacity-80 transition-all duration-500">
+              {segments[segments.length - 2]}
+            </p>
+          )}
+
+          {/* Level 1 (Current) */}
+          {segments.length >= 1 && (
+            <p className="text-5xl sm:text-6xl font-bold leading-[1.1] tracking-tight opacity-100 transition-all duration-500">
+              {segments[segments.length - 1]}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* End Session Button */}
+      <div className="flex justify-center pb-8 mt-auto">
+        <button
+          onClick={handleEndSession}
+          className="rounded-lg bg-[#b91c1c] px-14 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-[#991b1b] transition-colors duration-150"
+        >
+          End Session
+        </button>
+      </div>
+    </div>
+  )
 }
