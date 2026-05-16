@@ -53,20 +53,14 @@ export default function SessionCard({ session, currentUser }: SessionCardProps) 
         </div>
 
         {/* Action button */}
-        {isImam ? (
-          isOwnSession ? (
-            <button
-              id={`manage-session-${session.id}`}
-              onClick={() => router.push('/imam/session')}
-              className="rounded-xl bg-[#288C49] px-4 py-2 text-sm font-semibold text-white hover:bg-[#149121] transition-colors duration-150"
-            >
-              Manage
-            </button>
-          ) : (
-            <span className="rounded-xl border border-[#dbeade] px-4 py-2 text-sm font-medium text-[#4c6e4e]">
-              Live
-            </span>
-          )
+        {isOwnSession ? (
+          <button
+            id={`manage-session-${session.id}`}
+            onClick={() => router.push('/imam/session')}
+            className="rounded-xl bg-[#288C49] px-4 py-2 text-sm font-semibold text-white hover:bg-[#149121] transition-colors duration-150"
+          >
+            Manage
+          </button>
         ) : (
           <button
             id={`join-session-${session.id}`}

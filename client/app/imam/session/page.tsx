@@ -42,10 +42,12 @@ export default function ActiveSessionPage() {
 
   // Initialize Socket and Speech Recognition
   useEffect(() => {
+    if (!session?.id) return; // Wait until session is loaded
+
     socketRef.current = io('http://localhost:3001') // Connect to backend
     
     // Start session on socket
-    socketRef.current.emit('startSession')
+    socketRef.current.emit('startSession', { sessionId: session.id })
 
     // Timer
     timerRef.current = setInterval(() => {
@@ -71,7 +73,7 @@ export default function ActiveSessionPage() {
         finalTranscript = finalTranscript.trim()
         if (finalTranscript) {
           // Send to translation backend
-          socketRef.current?.emit('speech', { text: finalTranscript })
+          socketRef.current?.emit('speech', { sessionId: session.id, text: finalTranscript })
           
           // Add to local UI array
           setSegments(prev => {
@@ -102,11 +104,13 @@ export default function ActiveSessionPage() {
       recognitionRef.current?.stop()
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [])
+  }, [session?.id])
 
   const handleEndSession = () => {
     // End session in backend
-    socketRef.current?.emit('endSession')
+    if (session?.id) {
+      socketRef.current?.emit('endSession', { sessionId: session.id })
+    }
     
     // Stop local resources
     socketRef.current?.disconnect()

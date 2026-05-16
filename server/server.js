@@ -116,25 +116,62 @@ io.on('connection', (socket) => {
 
   // Handle speech input and translation
   socket.on('speech', async (data) => {
-    if (sessionActive) {
-      const german = await translateText(data.text, 'de');
-      const english = await translateText(data.text, 'en');
-      io.emit('translation', { original: data.text, german, english });
+    if (sessionActive && data.sessionId) {
+      try {
+        const german = await translateText(data.text, 'de');
+        const english = await translateText(data.text, 'en');
+        
+        // Save to DB
+        await prisma.translation.create({
+          data: { sessionId: data.sessionId, originalText: data.text, translatedText: german, language: 'de' }
+        });
+        await prisma.translation.create({
+          data: { sessionId: data.sessionId, originalText: data.text, translatedText: english, language: 'en' }
+        });
+
+        io.emit('translation', { original: data.text, german, english });
+      } catch (err) {
+        console.error('Failed to translate and save speech:', err);
+      }
     }
   });
 
   // Handle session management
-  socket.on('startSession', () => {
+  socket.on('startSession', (data) => {
     sessionActive = true;
     io.emit('sessionStatus', { active: true });
-    console.log('Session started');
+    console.log(`Session started: ${data?.sessionId}`);
   });
 
-  socket.on('endSession', () => {
+  socket.on('endSession', async (data) => {
     sessionActive = false;
     io.emit('sessionStatus', { active: false });
     io.emit('sessionEnded');
-    console.log('Session ended');
+    
+    if (data?.sessionId) {
+      try {
+        const translationsCount = await prisma.translation.count({
+          where: { sessionId: data.sessionId }
+        });
+
+        if (translationsCount === 0) {
+          // Delete session if no content
+          await prisma.session.delete({
+            where: { id: data.sessionId }
+          });
+          console.log(`Session ${data.sessionId} deleted (no content).`);
+        } else {
+          // Mark as inactive to move to stored sermons
+          await prisma.session.update({
+            where: { id: data.sessionId },
+            data: { isActive: false }
+          });
+          console.log(`Session ${data.sessionId} ended and stored.`);
+        }
+      } catch (err) {
+        console.error('Failed to end session in DB:', err);
+      }
+    }
   });
 });
 
