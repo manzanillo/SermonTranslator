@@ -361,14 +361,14 @@ app.get('/api/users', authenticate, async (req, res) => {
 
 // POST /api/sessions - Create a new session
 app.post('/api/sessions', authenticate, async (req, res) => {
-  const { title } = req.body;
+  const { title, description } = req.body;
   const userId = req.user.userId;
 
   // Validate required fields
-  if (!title) {
+  if (!title || !description) {
     return res.status(400).json({
       error: 'Missing required fields',
-      required: ['title']
+      required: ['title', 'description']
     });
   }
 
@@ -393,7 +393,8 @@ app.post('/api/sessions', authenticate, async (req, res) => {
     const newSession = await prisma.session.create({
       data: {
         imamId: userId,
-        title: title.trim()
+        title: title.trim(),
+        description: description.trim()
       },
       include: {
         imam: true,

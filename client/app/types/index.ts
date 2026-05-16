@@ -19,6 +19,7 @@ export interface Session {
   imamId: number
   imam: User
   title: string
+  description?: string
   isActive: boolean
   createdAt: string
   participants: User[]

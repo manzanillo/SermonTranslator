@@ -21,6 +21,7 @@ model Session {
   imamId      Int
   imam        User     @relation("SessionImam", fields: [imamId], references: [id])
   title       String
+  description String   @default("")
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   participants User[]  @relation("SessionParticipants")
