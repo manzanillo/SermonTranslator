@@ -23,6 +23,43 @@ function formatDate(dateStr: string) {
   }).replace(/\//g, '.')
 }
 
+function formatCommentDate(dateStr: string) {
+  if (!dateStr) return 'Just now'
+  if (dateStr === 'Just now' || dateStr === 'date') return dateStr
+
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) {
+      return dateStr
+    }
+    const now = new Date()
+    const diffMs = now.getTime() - d.getTime()
+
+    if (diffMs < 10000) {
+      return 'Just now'
+    }
+
+    const diffSecs = Math.floor(diffMs / 1000)
+    if (diffSecs < 60) {
+      return `${diffSecs}s ago`
+    }
+
+    const diffMins = Math.floor(diffSecs / 60)
+    if (diffMins < 60) {
+      return `${diffMins}m ago`
+    }
+
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) {
+      return `${diffHours}h ago`
+    }
+
+    return formatDate(dateStr)
+  } catch (e) {
+    return dateStr
+  }
+}
+
 export default function ForumDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -100,7 +137,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
       id: `comment_${Date.now()}`,
       authorName: user.name,
       content: inputValue,
-      createdAt: 'Just now',
+      createdAt: new Date().toISOString(),
       parentId: replyingTo ? replyingTo.id : null,
       repliedToName: replyingTo ? replyingTo.authorName : null
     }
@@ -222,7 +259,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                     )}
                   </div>
                   <span className="text-[#4c6e4e] font-normal text-xs">
-                    {comment.createdAt === 'date' ? 'date' : comment.createdAt}
+                    {formatCommentDate(comment.createdAt)}
                   </span>
                 </div>
 
