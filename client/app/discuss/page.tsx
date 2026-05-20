@@ -71,6 +71,7 @@ export default function DiscussPage() {
             Forum
           </h1>
           <button
+            onClick={() => router.push('/discuss/new')}
             className="bg-[#288C49] text-white px-12 py-2 rounded-lg font-semibold shadow-sm hover:bg-[#1a6632] transition-colors"
           >
             Post
