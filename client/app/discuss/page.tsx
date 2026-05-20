@@ -54,14 +54,6 @@ export default function DiscussPage() {
     )
   }
 
-  // To match the pixel perfect design exactly, we can use static data if empty
-  const displayForums = forums.length > 0 ? forums : [
-    { id: 1, title: 'Long descriptive title', content: 'Beginning of the Question/Forum Text', authorId: 1, author: user, createdAt: new Date().toISOString() },
-    { id: 2, title: 'Long descriptive title', content: 'Beginning of the Question/Forum Text', authorId: 1, author: user, createdAt: new Date().toISOString() },
-    { id: 3, title: 'Long descriptive title', content: 'Beginning of the Question/Forum Text', authorId: 1, author: user, createdAt: new Date().toISOString() },
-    { id: 4, title: 'Long descriptive title', content: 'Beginning of the Question/Forum Text', authorId: 1, author: user, createdAt: new Date().toISOString() }
-  ]
-
   return (
     <AppShell user={user}>
       <div className="flex flex-col min-h-[calc(100vh-2rem)] py-12 px-12 relative max-w-5xl mx-auto">
@@ -81,38 +73,40 @@ export default function DiscussPage() {
 
         {/* List */}
         <div className="flex-1 flex flex-col gap-4">
-          {displayForums.map((forum, index) => {
-            let snippet = forum.content || ''
-            if (snippet.length > 25) {
-              snippet = snippet.substring(0, 25) + '...'
-            } else if (snippet.length > 0) {
-              snippet = snippet + '...'
-            }
+          {forums.length === 0 ? (
+            <p className="text-[#4c6e4e] font-medium text-lg">No forum posts available.</p>
+          ) : (
+            forums.map((forum) => {
+              let snippet = forum.content || ''
+              if (snippet.length > 25) {
+                snippet = snippet.substring(0, 25) + '...'
+              } else if (snippet.length > 0) {
+                snippet = snippet + '...'
+              }
 
-            // Based on design, they use "date" or a real date. We will use the literal "date" if it's mock data, or real date if actual.
-            const dateStr = forums.length > 0 ? formatDate(forum.createdAt) : 'date'
-            const contentDisplay = forums.length > 0 ? snippet : 'Beginning of the Question/Forum Text ...'
+              const dateStr = formatDate(forum.createdAt)
 
-            return (
-              <div
-                key={forum.id || `mock-${index}`}
-                onClick={() => router.push(`/discuss/${forum.id || index + 1}`)}
-                className="flex items-start justify-between px-8 py-6 cursor-pointer rounded-xl transition-colors duration-150 bg-[#eef7ec] hover:bg-[#dbeade]"
-              >
-                <div>
-                  <h2 className="font-serif text-3xl font-bold text-[#0c3b28] mb-1">
-                    {forum.title}
-                  </h2>
-                  <p className="text-[#4c6e4e] font-sans text-sm">
-                    {contentDisplay}
-                  </p>
+              return (
+                <div
+                  key={forum.id}
+                  onClick={() => router.push(`/discuss/${forum.id}`)}
+                  className="flex items-start justify-between px-8 py-6 cursor-pointer rounded-xl transition-colors duration-150 bg-[#eef7ec] hover:bg-[#dbeade]"
+                >
+                  <div>
+                    <h2 className="font-serif text-3xl font-bold text-[#0c3b28] mb-1">
+                      {forum.title}
+                    </h2>
+                    <p className="text-[#4c6e4e] font-sans text-sm">
+                      {snippet || 'Beginning of the Question/Forum Text ...'}
+                    </p>
+                  </div>
+                  <div className="text-[#4c6e4e] font-sans text-sm pt-2">
+                    {dateStr}
+                  </div>
                 </div>
-                <div className="text-[#4c6e4e] font-sans text-sm pt-2">
-                  {dateStr}
-                </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
       </div>
     </AppShell>
