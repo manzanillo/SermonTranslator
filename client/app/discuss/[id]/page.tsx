@@ -77,6 +77,7 @@ export default function ForumDetailPage() {
 
   const toggleCollapse = (commentId: string, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (getRepliesCount(commentId) === 0) return
     setCollapsedIds(prev =>
       prev.includes(commentId) ? prev.filter(id => id !== commentId) : [...prev, commentId]
     )
@@ -272,13 +273,14 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         <div className="flex-1">
           {visibleComments.map((comment, idx) => {
             const hasDepth = comment.depth > 0
+            const hasReplies = getRepliesCount(comment.id) > 0
             const showDivider = idx < visibleComments.length - 1 && visibleComments[idx + 1].depth === 0
 
             return (
               <div key={comment.id} className="flex flex-col">
                 <div
                   onClick={(e) => {
-                    if (comment.isCollapsed) {
+                    if (comment.isCollapsed && hasReplies) {
                       toggleCollapse(comment.id, e)
                     } else {
                       handleReplyClick(comment)
@@ -292,9 +294,9 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                     {/* Straight vertical line for replies */}
                     {hasDepth && (
                       <div 
-                        onClick={(e) => toggleCollapse(comment.id, e)}
-                        title="Click to collapse thread"
-                        className="w-4 mr-3 flex justify-center items-stretch cursor-pointer select-none flex-shrink-0 relative group/line"
+                        onClick={(e) => hasReplies && toggleCollapse(comment.id, e)}
+                        title={hasReplies ? "Click to collapse thread" : undefined}
+                        className={`w-4 mr-3 flex justify-center items-stretch ${hasReplies ? 'cursor-pointer' : ''} select-none flex-shrink-0 relative group/line`}
                       >
                         <div className="w-[2px] bg-[#288c49]/20 group-hover/line:bg-[#288C49] h-full transition-colors duration-150 rounded-sm" />
                       </div>
@@ -305,15 +307,17 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                       <div className="flex items-center justify-between text-sm font-semibold text-[#288C49] mb-1">
                         <div className="flex items-center flex-wrap">
                           {/* Collapse/Expand toggle button */}
-                          <button
-                            onClick={(e) => toggleCollapse(comment.id, e)}
-                            className="mr-2.5 text-[10px] font-mono font-bold text-[#288C49]/60 hover:text-[#288C49] bg-[#288c49]/10 hover:bg-[#288c49]/20 w-4 h-4 flex items-center justify-center rounded transition-all select-none"
-                            title={comment.isCollapsed ? "Expand thread" : "Collapse thread"}
-                          >
-                            {comment.isCollapsed ? '+' : '−'}
-                          </button>
+                          {hasReplies && (
+                            <button
+                              onClick={(e) => toggleCollapse(comment.id, e)}
+                              className="mr-2.5 text-[10px] font-mono font-bold text-[#288C49]/60 hover:text-[#288C49] bg-[#288c49]/10 hover:bg-[#288c49]/20 w-4 h-4 flex items-center justify-center rounded transition-all select-none"
+                              title={comment.isCollapsed ? "Expand thread" : "Collapse thread"}
+                            >
+                              {comment.isCollapsed ? '+' : '−'}
+                            </button>
+                          )}
 
-                          <span className="text-[#288C49]">{comment.authorName}</span>
+                              <span className="text-[#288C49]">{comment.authorName}</span>
                           {comment.repliedToName && (
                             <span className="text-[#4c6e4e] font-normal text-xs ml-2 select-none">
                               -replied to <span className="font-medium text-[#288C49]">"{comment.repliedToName}"</span>
@@ -331,11 +335,9 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                       </div>
 
                       {/* Comment Content */}
-                      {!comment.isCollapsed && (
-                        <div className="text-[#0c3b28] font-sans text-sm md:text-base leading-relaxed whitespace-pre-wrap pr-12 mt-1">
-                          {comment.content}
-                        </div>
-                      )}
+                      <div className="text-[#0c3b28] font-sans text-sm md:text-base leading-relaxed whitespace-pre-wrap pr-12 mt-1">
+                        {comment.content}
+                      </div>
                     </div>
                   </div>
                 </div>
