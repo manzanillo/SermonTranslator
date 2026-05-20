@@ -71,7 +71,7 @@ export default function ListenerSessionPage() {
   }, [])
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FFFDEB] px-8 py-8 relative">
+    <div className="flex min-h-screen flex-col bg-[#F4F8F5] px-8 py-8 relative">
       {/* Top Logo */}
       <div className="absolute top-8 left-0 right-0 flex justify-center pointer-events-none">
         <h1 className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">

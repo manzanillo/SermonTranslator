@@ -6,7 +6,7 @@
 
 :root {
   color-scheme: light;
-  background-color: #fffdeb;
+  background-color: #F4F8F5;
   font-family: 'Public Sans', sans-serif;
 }
 
@@ -17,7 +17,7 @@ html {
 body {
   min-height: 100%;
   margin: 0;
-  background: linear-gradient(180deg, #DCFFE3 0%, #FFFDEB 100%);
+  background: linear-gradient(180deg, #E6F3EA 0%, #F4F8F5 100%);
   color: #0c3b28;
   font-family: 'Public Sans', sans-serif;
 }

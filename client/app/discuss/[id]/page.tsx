@@ -183,7 +183,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
 
   if (loading || !user || !post) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFFDEB]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8F5]">
         <div className="text-center">
           <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
         </div>
@@ -197,7 +197,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
   const postDate = post.id === 1 && post.author?.name === 'Username' ? 'date' : formatDate(post.createdAt)
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FFFDEB] px-6 py-8 relative">
+    <div className="flex min-h-screen flex-col bg-[#F4F8F5] px-6 py-8 relative">
       {/* Top Centered Brand Logo */}
       <div className="absolute top-8 left-0 right-0 flex justify-center pointer-events-none z-0">
         <p className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">
@@ -290,7 +290,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
       </div>
 
       {/* Floating Bottom Input Panel */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#FFFDEB] via-[#FFFDEB]/95 to-transparent pt-6 pb-8 px-6 z-20">
+      <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#F4F8F5] via-[#F4F8F5]/95 to-transparent pt-6 pb-8 px-6 z-20">
         <div className="max-w-4xl mx-auto flex flex-col">
           {/* Active Reply Banner */}
           {replyingTo && (

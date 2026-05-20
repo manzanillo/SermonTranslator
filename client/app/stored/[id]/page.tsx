@@ -33,7 +33,7 @@ export default function StoredSermonViewPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFFDEB]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8F5]">
         <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
       </div>
     )
@@ -41,7 +41,7 @@ export default function StoredSermonViewPage() {
 
   if (!session) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#FFFDEB] px-8">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F4F8F5] px-8">
         <h2 className="text-2xl font-serif text-[#0c3b28] mb-4">Sermon not found</h2>
         <button onClick={() => router.push('/stored')} className="text-[#288C49] hover:underline">
           Go back to Stored Sermons
@@ -66,7 +66,7 @@ export default function StoredSermonViewPage() {
     : fallbackText
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FFFDEB] px-8 py-8 relative">
+    <div className="flex min-h-screen flex-col bg-[#F4F8F5] px-8 py-8 relative">
       {/* Top Logo */}
       <div className="absolute top-8 left-0 right-0 flex justify-center pointer-events-none">
         <h1 className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">

@@ -52,7 +52,7 @@ export default function NewForumPostPage() {
   const placeholderContent = 'State your question'
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FFFDEB] relative">
+    <div className="flex min-h-screen flex-col bg-[#F4F8F5] relative">
       {/* Top Centered Brand Logo */}
       <div className="absolute top-8 left-0 right-0 flex justify-center pointer-events-none">
         <h1 className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">

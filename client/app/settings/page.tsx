@@ -120,7 +120,7 @@ export default function SettingsPage() {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FFFDEB]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8F5]">
         <div className="text-center">
           <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
         </div>
