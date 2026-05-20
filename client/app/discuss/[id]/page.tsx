@@ -205,10 +205,10 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         </p>
       </div>
 
-      <div className="mx-auto w-full max-w-4xl pt-16 flex-1 flex flex-col pb-28">
+      <div className="mx-auto w-full max-w-4xl pt-10 flex-1 flex flex-col pb-28">
         
         {/* Header / Navigation Bar */}
-        <div className="flex items-center justify-between mb-8 z-10">
+        <div className="flex items-center justify-between mb-4 z-10">
           <button
             onClick={() => router.push('/discuss')}
             className="text-[#288C49] hover:text-[#1a6632] transition-colors"
@@ -221,12 +221,12 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         </div>
 
         {/* Origin Question */}
-        <div className="mb-12 border-b border-[#dbeade] pb-8">
+        <div className="mb-8 pb-5">
           <div className="flex items-center justify-between text-sm font-semibold text-[#288C49] mb-3">
             <span>{post.author?.name || 'Username'}</span>
             <span className="text-[#4c6e4e] font-normal">{postDate}</span>
           </div>
-          <h1 className="font-serif text-4xl font-extrabold tracking-tight text-[#0c3b28] mb-6 leading-tight">
+          <h1 className="font-serif text-4xl font-extrabold tracking-tight text-[#0c3b28] mb-4 leading-tight">
             {post.title}
           </h1>
           <div className="text-[#0c3b28] font-sans text-base leading-relaxed whitespace-pre-wrap pr-2">
@@ -234,49 +234,51 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
           </div>
         </div>
 
+        {/* Shorter Centered Divider */}
+        <div className="w-[95%] mx-auto border-b-2 border-[#288C49]/20 mb-8" />
+
         {/* Comments Section */}
-        <div className="space-y-8 flex-1">
-          {flattenedComments.map((comment) => {
+        <div className="space-y-5 flex-1">
+          {flattenedComments.map((comment, idx) => {
             const hasDepth = comment.depth > 0
+            const showDivider = idx < flattenedComments.length - 1 && flattenedComments[idx + 1].depth === 0
+
             return (
-              <div
-                key={comment.id}
-                style={{ marginLeft: hasDepth ? `${Math.min(comment.depth * 2.5, 8)}rem` : '0px' }}
-                className={`group flex flex-col transition-all duration-200 ${
-                  hasDepth 
-                    ? 'border-l-2 border-[#288c49]/20 pl-4 md:pl-6 my-4' 
-                    : 'border-b border-[#dbeade]/50 pb-6'
-                }`}
-              >
-                {/* Comment Header */}
-                <div className="flex items-center justify-between text-sm font-semibold text-[#288C49] mb-2">
-                  <div className="flex items-center flex-wrap">
-                    <span className="text-[#288C49]">{comment.authorName}</span>
-                    {comment.repliedToName && (
-                      <span className="text-[#4c6e4e] font-normal text-xs ml-2 select-none">
-                        -replied to <span className="font-medium text-[#288C49]">"{comment.repliedToName}"</span>
-                      </span>
-                    )}
+              <div key={comment.id} className="flex flex-col">
+                <div
+                  onClick={() => handleReplyClick(comment)}
+                  style={{ marginLeft: hasDepth ? `${Math.min(comment.depth * 2.5, 8)}rem` : '0px' }}
+                  className={`group flex flex-col cursor-pointer transition-all duration-150 rounded-lg p-2.5 -mx-2.5 hover:bg-[#288C49]/5 active:bg-[#288C49]/10 ${
+                    hasDepth 
+                      ? 'border-l-2 border-[#288c49]/20 pl-4 md:pl-6 my-2 hover:border-l-[#288C49]' 
+                      : 'pb-2'
+                  }`}
+                  title={`Click to reply to ${comment.authorName}`}
+                >
+                  {/* Comment Header */}
+                  <div className="flex items-center justify-between text-sm font-semibold text-[#288C49] mb-1">
+                    <div className="flex items-center flex-wrap">
+                      <span className="text-[#288C49]">{comment.authorName}</span>
+                      {comment.repliedToName && (
+                        <span className="text-[#4c6e4e] font-normal text-xs ml-2 select-none">
+                          -replied to <span className="font-medium text-[#288C49]">"{comment.repliedToName}"</span>
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[#4c6e4e] font-normal text-xs">
+                      {formatCommentDate(comment.createdAt)}
+                    </span>
                   </div>
-                  <span className="text-[#4c6e4e] font-normal text-xs">
-                    {formatCommentDate(comment.createdAt)}
-                  </span>
+
+                  {/* Comment Content */}
+                  <div className="text-[#0c3b28] font-sans text-sm md:text-base leading-relaxed whitespace-pre-wrap pr-12">
+                    {comment.content}
+                  </div>
                 </div>
 
-                {/* Comment Content */}
-                <div className="text-[#0c3b28] font-sans text-sm md:text-base leading-relaxed whitespace-pre-wrap pr-12">
-                  {comment.content}
-                </div>
-
-                {/* Reply Link */}
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={() => handleReplyClick(comment)}
-                    className="font-serif text-base font-bold text-[#288C49] hover:text-[#1a6632] hover:underline transition-colors"
-                  >
-                    Reply
-                  </button>
-                </div>
+                {showDivider && (
+                  <div className="my-4 border-t-2 border-[#288C49]/20 w-[95%] mx-auto" />
+                )}
               </div>
             )
           })}
