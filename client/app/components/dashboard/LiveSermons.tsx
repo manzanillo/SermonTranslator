@@ -19,7 +19,7 @@ export default function LiveSermons({ user }: LiveSermonsProps) {
   const isImam = user.role === 'imam'
 
   return (
-    <div className="flex flex-col pt-12 pb-16 px-8 w-full max-w-4xl mx-auto">
+    <div className="flex flex-col pt-12 pb-28 px-8 w-full max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="font-serif text-4xl font-bold tracking-[-0.03em] text-[#0c3b28]">
@@ -34,21 +34,35 @@ export default function LiveSermons({ user }: LiveSermonsProps) {
 
         {/* Start New Session CTA (Imam Only) */}
         {isImam && (
-          <div className="mb-8 flex items-center justify-between rounded-2xl border border-[#dbeade] bg-white/95 p-6 shadow-[0_4px_24px_rgba(17,45,22,0.07)]">
-            <div>
-              <p className="font-serif text-xl font-semibold text-[#0c3b28]">Ready to begin?</p>
-              <p className="mt-1 text-sm text-[#4c6e4e]">
-                Start a new live session and your listeners will be notified.
-              </p>
+          <>
+            <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[#dbeade] bg-white/95 p-6 shadow-[0_4px_24px_rgba(17,45,22,0.07)] sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-serif text-xl font-semibold text-[#0c3b28]">Ready to begin?</p>
+                <p className="mt-1 text-sm text-[#4c6e4e]">
+                  Start a new live session and your listeners will be notified.
+                </p>
+              </div>
+              <button
+                id="start-new-session-btn"
+                onClick={() => router.push('/imam/new-session')}
+                className="hidden sm:inline-flex flex-shrink-0 rounded-xl bg-[#288C49] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#149121] transition-colors duration-150"
+              >
+                + New Session
+              </button>
             </div>
-            <button
-              id="start-new-session-btn"
-              onClick={() => router.push('/imam/new-session')}
-              className="flex-shrink-0 rounded-xl bg-[#288C49] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#149121] transition-colors duration-150"
-            >
-              + New Session
-            </button>
-          </div>
+
+            <div className="fixed inset-x-0 bottom-0 z-20 bg-[#F4F8F5]/95 backdrop-blur-sm px-4 py-4 sm:hidden">
+              <div className="mx-auto max-w-4xl flex justify-center">
+                <button
+                  id="start-new-session-btn-mobile"
+                  onClick={() => router.push('/imam/new-session')}
+                  className="w-full max-w-md rounded-xl bg-[#288C49] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#149121] transition-colors duration-150"
+                >
+                  + New Session
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
         {/* Info banner (Listener Only) */}

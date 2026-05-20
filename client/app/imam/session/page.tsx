@@ -4,7 +4,21 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { io, Socket } from 'socket.io-client'
 import { authFetch } from '../../utils/auth'
-import { Session } from '../../types'
+import { Session, Translation } from '../../types'
+
+const getSessionSegments = (translations: Translation[]) => {
+  const originals = translations
+    .map((translation) => translation.originalText?.trim())
+    .filter((text): text is string => Boolean(text))
+    .reduce((unique: string[], text) => {
+      if (unique.length === 0 || unique[unique.length - 1] !== text) {
+        unique.push(text)
+      }
+      return unique
+    }, [])
+
+  return originals.slice(Math.max(0, originals.length - 4))
+}
 
 export default function ActiveSessionPage() {
   const router = useRouter()
@@ -32,6 +46,9 @@ export default function ActiveSessionPage() {
           const active = sessions.find((s: Session) => s.imamId === meData.user.id && s.isActive)
           if (active) {
             setSession(active)
+            if (active.translations?.length) {
+              setSegments(getSessionSegments(active.translations))
+            }
           }
         }
       } catch (err) {

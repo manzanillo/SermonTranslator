@@ -60,7 +60,7 @@ export default function NewForumPostPage() {
         </h1>
       </div>
 
-      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-8 pt-32 pb-12">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-6 sm:px-8 pt-32 pb-28 sm:pb-12">
         {/* Back Button */}
         <button
           onClick={() => router.push('/discuss')}
@@ -73,7 +73,7 @@ export default function NewForumPostPage() {
         </button>
 
         {/* Post Creation Form */}
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col relative">
+        <form id="new-post-form" onSubmit={handleSubmit} className="flex flex-1 flex-col relative">
           
           {/* Forum Title Input */}
           <div className="mb-8">
@@ -117,7 +117,7 @@ export default function NewForumPostPage() {
           )}
 
           {/* Bottom Center Submit Button */}
-          <div className="mt-8 flex justify-center pb-8">
+          <div className="mt-8 hidden justify-center pb-8 sm:flex">
             <button
               type="submit"
               disabled={isSubmitting}
@@ -127,6 +127,19 @@ export default function NewForumPostPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 bg-[#F4F8F5]/95 backdrop-blur-sm px-4 py-4 sm:hidden">
+        <div className="mx-auto max-w-4xl flex justify-center">
+          <button
+            type="submit"
+            form="new-post-form"
+            disabled={isSubmitting}
+            className="w-full max-w-md rounded-xl bg-[#288C49] px-16 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-[#1a6632] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed select-none"
+          >
+            {isSubmitting ? 'Posting...' : 'Post'}
+          </button>
+        </div>
       </div>
     </div>
   )
