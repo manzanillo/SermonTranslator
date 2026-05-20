@@ -71,8 +71,27 @@ export default function ForumDetailPage() {
   const [comments, setComments] = useState<Comment[]>([])
   const [inputValue, setInputValue] = useState('')
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null)
+  const [collapsedIds, setCollapsedIds] = useState<string[]>([])
 
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const toggleCollapse = (commentId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCollapsedIds(prev =>
+      prev.includes(commentId) ? prev.filter(id => id !== commentId) : [...prev, commentId]
+    )
+  }
+
+  const getRepliesCount = (commentId: string): number => {
+    let count = 0
+    const countReplies = (id: string) => {
+      const children = comments.filter(c => c.parentId === id)
+      count += children.length
+      children.forEach(child => countReplies(child.id))
+    }
+    countReplies(commentId)
+    return count
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -156,9 +175,15 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
     }, 50)
   }
 
+  interface FlatComment extends Comment {
+    depth: number
+    isCollapsed: boolean
+    isHidden: boolean
+  }
+
   // Flatten comments tree logic:
   // DFS to flatten comments list, keeping replies immediately below parent
-  const buildFlatThread = (commentsList: Comment[]): Array<Comment & { depth: number }> => {
+  const buildFlatThread = (commentsList: Comment[]): FlatComment[] => {
     const map = new Map<string | null, Comment[]>()
     commentsList.forEach(c => {
       const pId = c.parentId
@@ -166,18 +191,23 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
       map.get(pId)!.push(c)
     })
 
-    const result: Array<Comment & { depth: number }> = []
+    const result: FlatComment[] = []
 
-    const traverse = (parentId: string | null, depth: number) => {
+    const traverse = (parentId: string | null, depth: number, parentCollapsed: boolean) => {
       const children = map.get(parentId) || []
-      // Sort children chronologically or keep insertion order
       children.forEach(child => {
-        result.push({ ...child, depth })
-        traverse(child.id, depth + 1)
+        const isCollapsed = collapsedIds.includes(child.id)
+        result.push({
+          ...child,
+          depth,
+          isCollapsed,
+          isHidden: parentCollapsed
+        })
+        traverse(child.id, depth + 1, parentCollapsed || isCollapsed)
       })
     }
 
-    traverse(null, 0)
+    traverse(null, 0, false)
     return result
   }
 
@@ -192,6 +222,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
   }
 
   const flattenedComments = buildFlatThread(comments)
+  const visibleComments = flattenedComments.filter(c => !c.isHidden)
 
   // Use date fallback similar to overview
   const postDate = post.id === 1 && post.author?.name === 'Username' ? 'date' : formatDate(post.createdAt)
@@ -239,40 +270,73 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
 
         {/* Comments Section */}
         <div className="space-y-5 flex-1">
-          {flattenedComments.map((comment, idx) => {
+          {visibleComments.map((comment, idx) => {
             const hasDepth = comment.depth > 0
-            const showDivider = idx < flattenedComments.length - 1 && flattenedComments[idx + 1].depth === 0
+            const showDivider = idx < visibleComments.length - 1 && visibleComments[idx + 1].depth === 0
 
             return (
               <div key={comment.id} className="flex flex-col">
                 <div
-                  onClick={() => handleReplyClick(comment)}
+                  onClick={(e) => {
+                    if (comment.isCollapsed) {
+                      toggleCollapse(comment.id, e)
+                    } else {
+                      handleReplyClick(comment)
+                    }
+                  }}
                   style={{ marginLeft: hasDepth ? `${Math.min(comment.depth * 2.5, 8)}rem` : '0px' }}
-                  className={`group flex flex-col cursor-pointer transition-all duration-150 rounded-lg p-2.5 -mx-2.5 hover:bg-[#288C49]/5 active:bg-[#288C49]/10 ${
-                    hasDepth 
-                      ? 'border-l-2 border-[#288c49]/20 pl-4 md:pl-6 my-2 hover:border-l-[#288C49]' 
-                      : 'pb-2'
-                  }`}
-                  title={`Click to reply to ${comment.authorName}`}
+                  className="group flex flex-col cursor-pointer transition-all duration-150 rounded-lg p-2.5 -mx-2.5 hover:bg-[#288C49]/5 active:bg-[#288C49]/10 pb-2 my-1"
+                  title={comment.isCollapsed ? "Click to expand thread" : `Click to reply to ${comment.authorName}`}
                 >
-                  {/* Comment Header */}
-                  <div className="flex items-center justify-between text-sm font-semibold text-[#288C49] mb-1">
-                    <div className="flex items-center flex-wrap">
-                      <span className="text-[#288C49]">{comment.authorName}</span>
-                      {comment.repliedToName && (
-                        <span className="text-[#4c6e4e] font-normal text-xs ml-2 select-none">
-                          -replied to <span className="font-medium text-[#288C49]">"{comment.repliedToName}"</span>
+                  <div className="flex items-stretch">
+                    {/* Straight vertical line for replies */}
+                    {hasDepth && (
+                      <div 
+                        onClick={(e) => toggleCollapse(comment.id, e)}
+                        title="Click to collapse thread"
+                        className="w-4 mr-3 flex justify-center items-stretch cursor-pointer select-none flex-shrink-0 relative group/line"
+                      >
+                        <div className="w-[2px] bg-[#288c49]/20 group-hover/line:bg-[#288C49] h-full transition-colors duration-150 rounded-sm" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      {/* Comment Header */}
+                      <div className="flex items-center justify-between text-sm font-semibold text-[#288C49] mb-1">
+                        <div className="flex items-center flex-wrap">
+                          {/* Collapse/Expand toggle button */}
+                          <button
+                            onClick={(e) => toggleCollapse(comment.id, e)}
+                            className="mr-2.5 text-[10px] font-mono font-bold text-[#288C49]/60 hover:text-[#288C49] bg-[#288c49]/10 hover:bg-[#288c49]/20 w-4 h-4 flex items-center justify-center rounded transition-all select-none"
+                            title={comment.isCollapsed ? "Expand thread" : "Collapse thread"}
+                          >
+                            {comment.isCollapsed ? '+' : '−'}
+                          </button>
+
+                          <span className="text-[#288C49]">{comment.authorName}</span>
+                          {comment.repliedToName && (
+                            <span className="text-[#4c6e4e] font-normal text-xs ml-2 select-none">
+                              -replied to <span className="font-medium text-[#288C49]">"{comment.repliedToName}"</span>
+                            </span>
+                          )}
+                          {comment.isCollapsed && (
+                            <span className="text-xs font-normal text-[#4c6e4e]/70 ml-2 select-none">
+                              (collapsed · {getRepliesCount(comment.id)} replies)
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[#4c6e4e] font-normal text-xs">
+                          {formatCommentDate(comment.createdAt)}
                         </span>
+                      </div>
+
+                      {/* Comment Content */}
+                      {!comment.isCollapsed && (
+                        <div className="text-[#0c3b28] font-sans text-sm md:text-base leading-relaxed whitespace-pre-wrap pr-12 mt-1">
+                          {comment.content}
+                        </div>
                       )}
                     </div>
-                    <span className="text-[#4c6e4e] font-normal text-xs">
-                      {formatCommentDate(comment.createdAt)}
-                    </span>
-                  </div>
-
-                  {/* Comment Content */}
-                  <div className="text-[#0c3b28] font-sans text-sm md:text-base leading-relaxed whitespace-pre-wrap pr-12">
-                    {comment.content}
                   </div>
                 </div>
 
@@ -296,7 +360,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         <div className="max-w-4xl mx-auto flex flex-col">
           {/* Active Reply Banner */}
           {replyingTo && (
-            <div className="flex items-center justify-between bg-[#288c49]/10 text-[#0c3b28] text-xs font-semibold px-4 py-2 rounded-t-lg border-x border-t border-[#288C49]/30 transition-all duration-150">
+            <div className="flex items-center justify-between bg-[#288c49]/10 text-[#0c3b28] text-xs font-semibold px-4 py-2 rounded-t-xl border-x border-t border-[#288C49]/30 transition-all duration-150">
               <span className="flex items-center gap-1">
                 Replying to <strong className="text-[#288C49]">{replyingTo.authorName}</strong>
               </span>
@@ -310,7 +374,9 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
           )}
 
           {/* Bottom TextInput Control */}
-          <div className="relative flex items-center border border-[#288C49] rounded-xl bg-white/95 shadow-sm backdrop-blur-sm transition-all focus-within:ring-2 focus-within:ring-[#288C49]/20 focus-within:border-[#1a6632]">
+          <div className={`relative flex items-center border border-[#288C49] bg-white/95 shadow-sm backdrop-blur-sm transition-all focus-within:ring-2 focus-within:ring-[#288C49]/20 focus-within:border-[#1a6632] ${
+            replyingTo ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'
+          }`}>
             <input
               ref={inputRef}
               type="text"
