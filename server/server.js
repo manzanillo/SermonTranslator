@@ -342,6 +342,54 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
   }
 });
 
+// POST /api/auth/change-password
+app.post('/api/auth/change-password', authenticate, async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'Old password and new password are required' });
+  }
+
+  try {
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify old password matches
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Incorrect old password' });
+    }
+
+    // Validate new password strength
+    if (!validatePassword(newPassword)) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters and contain uppercase letter, lowercase letter, number, and special character (@$!%*?&)'
+      });
+    }
+
+    // Hash the new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update in database
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { password: hashedPassword }
+    });
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Password change error:', error);
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
 // ============================================================================
 // USER ROUTES
 // ============================================================================
