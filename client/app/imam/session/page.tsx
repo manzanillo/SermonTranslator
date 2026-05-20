@@ -11,6 +11,7 @@ export default function ActiveSessionPage() {
   const [session, setSession] = useState<Session | null>(null)
   const [segments, setSegments] = useState<string[]>([])
   const [sessionTime, setSessionTime] = useState(0)
+  const [debugInput, setDebugInput] = useState('')
   
   const socketRef = useRef<Socket | null>(null)
   const recognitionRef = useRef<any>(null)
@@ -141,6 +142,27 @@ export default function ActiveSessionPage() {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
+  const handleSendDebugSpeech = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const trimmed = debugInput.trim()
+    if (!trimmed || !session?.id) return
+
+    // Emit identical 'speech' socket event to the backend
+    socketRef.current?.emit('speech', { sessionId: session.id, text: trimmed })
+
+    // Add to local UI array
+    setSegments(prev => {
+      const updated = [...prev, trimmed]
+      // Keep only the last 4 segments
+      if (updated.length > 4) {
+        return updated.slice(updated.length - 4)
+      }
+      return updated
+    })
+
+    setDebugInput('')
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#FFFDEB] px-8 py-8 relative">
       {/* Top Logo */}
@@ -215,6 +237,34 @@ export default function ActiveSessionPage() {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Debug Keyboard Input Panel */}
+      <div className="mx-auto w-full max-w-4xl mb-8 p-4 rounded-xl border border-dashed border-[#288C49]/40 bg-white/60 backdrop-blur-sm shadow-sm transition-all hover:border-[#288C49]/60">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex items-center rounded-md bg-[#288C49]/10 px-2 py-1 text-xs font-semibold text-[#288C49] ring-1 ring-inset ring-[#288C49]/20">
+            Speech Debug Input
+          </span>
+          <span className="text-xs text-[#288C49]/70 font-medium">
+            Imam speech simulation console (Type here and hit Send/Enter to simulate sermon voice data)
+          </span>
+        </div>
+        <form onSubmit={handleSendDebugSpeech} className="flex gap-3">
+          <input
+            type="text"
+            value={debugInput}
+            onChange={(e) => setDebugInput(e.target.value)}
+            placeholder="Enter simulated sermon speech..."
+            className="flex-1 rounded-lg border border-[#288C49]/20 bg-white px-4 py-2.5 text-sm text-[#144f2d] placeholder-[#144f2d]/30 shadow-inner focus:border-[#288C49]/50 focus:outline-none focus:ring-1 focus:ring-[#288C49]/50 transition-all font-serif"
+          />
+          <button
+            type="submit"
+            disabled={!debugInput.trim()}
+            className="rounded-lg bg-[#288C49] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#1a6632] disabled:opacity-40 disabled:hover:bg-[#288C49] transition-all duration-150 active:scale-[0.98]"
+          >
+            Send Speech
+          </button>
+        </form>
       </div>
 
       {/* End Session Button */}
