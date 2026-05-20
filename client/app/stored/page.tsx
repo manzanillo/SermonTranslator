@@ -87,8 +87,8 @@ export default function StoredSermonsPage() {
           ) : (
             sessions.map((session) => {
               let desc = session.description || ''
-              if (desc.length > 25) {
-                desc = desc.substring(0, 25) + '...'
+              if (desc.length > 50) {
+                desc = desc.substring(0, 50) + '...'
               } else if (desc.length > 0) {
                 desc = desc + '...'
               }

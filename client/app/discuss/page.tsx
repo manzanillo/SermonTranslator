@@ -83,8 +83,8 @@ export default function DiscussPage() {
           ) : (
             forums.map((forum) => {
               let snippet = forum.content || ''
-              if (snippet.length > 25) {
-                snippet = snippet.substring(0, 25) + '...'
+              if (snippet.length > 50) {
+                snippet = snippet.substring(0, 50) + '...'
               } else if (snippet.length > 0) {
                 snippet = snippet + '...'
               }
