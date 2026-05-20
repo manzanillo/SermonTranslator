@@ -25,3 +25,13 @@ export interface Session {
   participants: User[]
   translations: Translation[]
 }
+
+export interface ForumPost {
+  id: number
+  title: string
+  content: string
+  authorId: number
+  author: User
+  createdAt: string
+}
+

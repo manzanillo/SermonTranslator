@@ -702,6 +702,51 @@ app.delete('/api/translations/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================================
+// FORUM ROUTES
+// ============================================================================
+
+// GET /api/forums - Get all forum posts
+app.get('/api/forums', authenticate, async (req, res) => {
+  try {
+    const forums = await prisma.forumPost.findMany({
+      include: { author: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.status(200).json(forums);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch forums' });
+  }
+});
+
+// POST /api/forums - Create a new forum post
+app.post('/api/forums', authenticate, async (req, res) => {
+  const { title, content } = req.body;
+
+  if (!title || !content) {
+    return res.status(400).json({ error: 'Missing title or content' });
+  }
+
+  try {
+    const newPost = await prisma.forumPost.create({
+      data: {
+        title: title.trim(),
+        content: content.trim(),
+        authorId: req.user.userId
+      },
+      include: { author: true }
+    });
+
+    res.status(201).json({
+      message: 'Forum post created successfully',
+      post: newPost
+    });
+  } catch (error) {
+    console.error('Forum post creation error:', error);
+    res.status(500).json({ error: 'Failed to create forum post' });
+  }
+});
+
+// ============================================================================
 // ERROR HANDLING & GRACEFUL SHUTDOWN
 // ============================================================================
 

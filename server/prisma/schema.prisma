@@ -14,6 +14,7 @@ model User {
   createdAt DateTime @default(now())
   sessionsAsImam       Session[] @relation("SessionImam")
   participatedSessions Session[] @relation("SessionParticipants")
+  forumPosts           ForumPost[]
   @@map("users")
 }
 model Session {
@@ -37,4 +38,14 @@ model Translation {
   language       String
   createdAt      DateTime @default(now())
   @@map("translations")
+}
+
+model ForumPost {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@map("forum_posts")
 }
