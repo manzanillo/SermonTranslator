@@ -269,7 +269,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         <div className="w-[95%] mx-auto border-b-2 border-[#288C49]/20 mb-8" />
 
         {/* Comments Section */}
-        <div className="space-y-5 flex-1">
+        <div className="flex-1">
           {visibleComments.map((comment, idx) => {
             const hasDepth = comment.depth > 0
             const showDivider = idx < visibleComments.length - 1 && visibleComments[idx + 1].depth === 0
@@ -341,7 +341,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                 </div>
 
                 {showDivider && (
-                  <div className="my-4 border-t-2 border-[#288C49]/20 w-[95%] mx-auto" />
+                  <div className="my-5 border-t-2 border-[#288C49]/20 w-[95%] mx-auto" />
                 )}
               </div>
             )
