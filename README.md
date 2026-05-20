@@ -1,4 +1,4 @@
-# Sermon Translator
+# Zermon - stream translated sermons!
 
 A real-time sermon translation application that converts spoken Turkish into German and English translations instantly.
 
