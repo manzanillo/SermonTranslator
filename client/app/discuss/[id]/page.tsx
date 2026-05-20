@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { authFetch } from '../../utils/auth'
+import { authFetch, getCachedUser, setCachedUser } from '../../utils/auth'
 import { User, ForumPost } from '../../types'
 
 interface Comment {
@@ -28,9 +28,9 @@ export default function ForumDetailPage() {
   const params = useParams()
   const id = params.id as string
 
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(() => getCachedUser())
   const [post, setPost] = useState<ForumPost | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !getCachedUser())
   const [comments, setComments] = useState<Comment[]>([])
   const [inputValue, setInputValue] = useState('')
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null)
@@ -44,6 +44,7 @@ export default function ForumDetailPage() {
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
+        setCachedUser(authData.user)
 
         // Try to fetch post from backend, fallback to matching mock post
         const forumRes = await authFetch('http://localhost:3001/api/forums')

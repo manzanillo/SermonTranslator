@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
 import LiveSermons from '../components/dashboard/LiveSermons'
-import { authFetch } from '../utils/auth'
+import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { User } from '../types'
 
 export default function ListenerPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(() => getCachedUser())
+  const [loading, setLoading] = useState(() => !getCachedUser())
   const router = useRouter()
 
   useEffect(() => {
@@ -20,6 +20,7 @@ export default function ListenerPage() {
           const data = await response.json()
           if (data.user.role === 'listener') {
             setUser(data.user)
+            setCachedUser(data.user)
           } else {
             router.push('/imam')
           }

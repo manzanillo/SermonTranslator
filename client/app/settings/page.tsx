@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
-import { authFetch } from '../utils/auth'
+import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { User } from '../types'
 import { Input } from '../components/ui/input'
 
@@ -13,8 +13,8 @@ const validatePassword = (password: string) => {
 }
 
 export default function SettingsPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(() => getCachedUser())
+  const [loading, setLoading] = useState(() => !getCachedUser())
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newPasswordAgain, setNewPasswordAgain] = useState('')
@@ -40,6 +40,7 @@ export default function SettingsPage() {
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
+        setCachedUser(authData.user)
       } catch (err) {
         router.push('/login')
       } finally {

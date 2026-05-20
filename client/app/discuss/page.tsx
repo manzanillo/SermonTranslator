@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
-import { authFetch } from '../utils/auth'
+import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { User, ForumPost } from '../types'
 
 function formatDate(dateStr: string) {
@@ -16,8 +16,8 @@ function formatDate(dateStr: string) {
 }
 
 export default function DiscussPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(() => getCachedUser())
+  const [loading, setLoading] = useState(() => !getCachedUser())
   const [forums, setForums] = useState<ForumPost[]>([])
   const router = useRouter()
 
@@ -28,6 +28,7 @@ export default function DiscussPage() {
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
+        setCachedUser(authData.user)
 
         const forumRes = await authFetch('http://localhost:3001/api/forums')
         if (forumRes.ok) {

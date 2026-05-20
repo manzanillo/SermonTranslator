@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
-import { authFetch } from '../utils/auth'
+import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { Session, User } from '../types'
 
 function formatDuration(ms: number) {
@@ -26,8 +26,8 @@ function calculateSessionDuration(session: Session) {
 }
 
 export default function StoredSermonsPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(() => getCachedUser())
+  const [loading, setLoading] = useState(() => !getCachedUser())
   const [sessions, setSessions] = useState<Session[]>([])
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
   const [uiLanguage, setUiLanguage] = useState<'german' | 'english'>('english')
@@ -40,6 +40,7 @@ export default function StoredSermonsPage() {
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
+        setCachedUser(authData.user)
 
         const sessRes = await authFetch('http://localhost:3001/api/sessions')
         if (sessRes.ok) {

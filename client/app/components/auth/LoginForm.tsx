@@ -66,6 +66,10 @@ export default function LoginForm() {
         return
       }
 
+      // Cache the user for instant client-side rendering (CSR) layout load
+      const { setCachedUser } = require('../../utils/auth')
+      setCachedUser(data.user)
+
       if (data.user.role === 'imam') {
         router.push('/imam')
       } else {

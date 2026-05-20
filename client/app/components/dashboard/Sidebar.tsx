@@ -63,6 +63,9 @@ export default function Sidebar({ user }: SidebarProps) {
   const navItems = getNavItems(user.role)
 
   const handleLogout = async () => {
+    // Clear user cache instantly on logout
+    const { setCachedUser } = require('../../utils/auth')
+    setCachedUser(null)
     try {
       await authFetch('http://localhost:3001/api/auth/logout', { method: 'POST' }, false)
     } catch {}
