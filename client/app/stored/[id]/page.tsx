@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { authFetch } from '../../../utils/auth'
-import { Session, Translation } from '../../../types'
+import { authFetch } from '../../utils/auth'
+import { Session, Translation } from '../../types'
 
 export default function StoredSermonViewPage() {
   const router = useRouter()

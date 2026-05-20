@@ -94,6 +94,7 @@ export default function DiscussPage() {
             return (
               <div
                 key={forum.id || `mock-${index}`}
+                onClick={() => router.push(`/discuss/${forum.id || index + 1}`)}
                 className="flex items-start justify-between px-8 py-6 cursor-pointer rounded-xl transition-colors duration-150 bg-[#eef7ec] hover:bg-[#dbeade]"
               >
                 <div>
