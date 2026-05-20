@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { User } from '../../types'
 import { authFetch } from '../../utils/auth'
@@ -59,6 +60,7 @@ function getInitials(name: string) {
 }
 
 export default function Sidebar({ user }: SidebarProps) {
+  const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
   const navItems = getNavItems(user.role)
 
@@ -72,69 +74,102 @@ export default function Sidebar({ user }: SidebarProps) {
     window.location.href = '/login'
   }
 
+  const handleNavClick = (href: string) => {
+    setIsOpen(false)
+    router.push(href)
+  }
+
   return (
-    <aside className="relative z-10 flex h-screen w-64 flex-shrink-0 flex-col bg-white/90 border-r border-[#dbeade] backdrop-blur-sm">
-      {/* Logo */}
-      <div className="px-6 pt-8 pb-6">
-        <p className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">
-          Zermon
-        </p>
-        <p className="mt-1 text-xs font-medium text-[#4c6e4e]">
-          {user.role === 'imam' ? 'Imam Portal' : 'Listener Portal'}
-        </p>
-      </div>
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed top-4 left-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/95 text-[#288C49] shadow-sm border border-[#dbeade] transition-colors hover:bg-[#f3faf4] md:hidden"
+        aria-label="Open navigation"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
 
-      <div className="mx-4 h-px bg-[#dbeade]" />
+      <div
+        className={`fixed inset-0 z-20 bg-black/20 transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsOpen(false)}
+      />
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive =
-            typeof window !== 'undefined' && window.location.pathname === item.href
-          return (
-            <button
-              key={item.href}
-              id={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
-              onClick={() => router.push(item.href)}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left',
-                isActive
-                  ? 'bg-[#eef7ec] text-[#0c3b28] font-semibold'
-                  : 'text-[#4c6e4e] hover:bg-[#f3faf4] hover:text-[#0c3b28]',
-              )}
-            >
-              <span className={isActive ? 'text-[#288C49]' : 'text-[#6a9c6b]'}>{item.icon}</span>
-              {item.label}
-            </button>
-          )
-        })}
-      </nav>
-
-      <div className="mx-4 h-px bg-[#dbeade]" />
-
-      {/* User + Logout */}
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#288C49] text-white text-sm font-serif font-semibold">
-            {getInitials(user.name)}
+      <aside className={`fixed inset-y-0 left-0 z-30 flex h-screen w-64 flex-shrink-0 flex-col bg-white/95 border-r border-[#dbeade] backdrop-blur-sm transform transition-transform duration-300 md:relative md:translate-x-0 md:flex ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Logo */}
+        <div className="flex items-start justify-between px-6 pt-8 pb-6 md:items-center">
+          <div>
+            <p className="font-serif text-2xl font-bold tracking-[-0.04em] text-[#288C49]">
+              Zermon
+            </p>
+            <p className="mt-1 text-xs font-medium text-[#4c6e4e]">
+              {user.role === 'imam' ? 'Imam Portal' : 'Listener Portal'}
+            </p>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[#0c3b28]">{user.name}</p>
-            <p className="truncate text-xs text-[#4c6e4e]">{user.email}</p>
-          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#f3faf4] text-[#288C49] transition-colors hover:bg-[#e6f3ea] md:hidden"
+            aria-label="Close navigation"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <button
-          id="sidebar-logout"
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-[#9b2c2c] hover:bg-[#fff1f1] transition-colors duration-150"
-        >
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Sign out
-        </button>
-      </div>
-    </aside>
+        <div className="mx-4 h-px bg-[#dbeade]" />
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => {
+            const isActive =
+              typeof window !== 'undefined' && window.location.pathname === item.href
+            return (
+              <button
+                key={item.href}
+                id={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
+                onClick={() => handleNavClick(item.href)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left',
+                  isActive
+                    ? 'bg-[#eef7ec] text-[#0c3b28] font-semibold'
+                    : 'text-[#4c6e4e] hover:bg-[#f3faf4] hover:text-[#0c3b28]',
+                )}
+              >
+                <span className={isActive ? 'text-[#288C49]' : 'text-[#6a9c6b]'}>{item.icon}</span>
+                {item.label}
+              </button>
+            )
+          })}
+        </nav>
+
+        <div className="mx-4 h-px bg-[#dbeade]" />
+
+        {/* User + Logout */}
+        <div className="p-4 space-y-3">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#288C49] text-white text-sm font-serif font-semibold">
+              {getInitials(user.name)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[#0c3b28]">{user.name}</p>
+              <p className="truncate text-xs text-[#4c6e4e]">{user.email}</p>
+            </div>
+          </div>
+
+          <button
+            id="sidebar-logout"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-[#9b2c2c] hover:bg-[#fff1f1] transition-colors duration-150"
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }
