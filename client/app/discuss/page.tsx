@@ -56,19 +56,24 @@ export default function DiscussPage() {
 
   return (
     <AppShell user={user}>
-      <div className="flex flex-col min-h-[calc(100vh-2rem)] py-12 px-12 relative max-w-5xl mx-auto">
+      <div className="flex flex-col pt-12 pb-16 px-8 w-full max-w-4xl mx-auto">
         
         {/* Header Row */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-serif text-[2.5rem] font-bold tracking-tight text-[#0c3b28]">
+        <div className="mb-8 text-center flex flex-col items-center">
+          <h1 className="font-serif text-4xl font-bold tracking-[-0.03em] text-[#0c3b28]">
             Forum
           </h1>
-          <button
-            onClick={() => router.push('/discuss/new')}
-            className="bg-[#288C49] text-white px-12 py-2 rounded-lg font-semibold shadow-sm hover:bg-[#1a6632] transition-colors"
-          >
-            Post
-          </button>
+          <p className="mt-2 text-base text-[#4c6e4e]">
+            Discuss questions and answers with your community.
+          </p>
+          <div className="mt-4">
+            <button
+              onClick={() => router.push('/discuss/new')}
+              className="bg-[#288C49] text-white px-12 py-2.5 rounded-lg font-semibold shadow-sm hover:bg-[#1a6632] transition-colors"
+            >
+              Post
+            </button>
+          </div>
         </div>
 
         {/* List */}

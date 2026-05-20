@@ -19,19 +19,18 @@ export default function LiveSermons({ user }: LiveSermonsProps) {
   const isImam = user.role === 'imam'
 
   return (
-    <div className="flex justify-center px-8 py-10 w-full">
-      <div className="w-full max-w-4xl">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="font-serif text-4xl font-black tracking-[-0.03em] text-[#0c3b28]">
-            {getGreeting(user.name)}
-          </h1>
-          <p className="mt-2 text-base text-[#4c6e4e]">
-            {isImam
-              ? 'Manage your sermon sessions and translations in real time.'
-              : 'Join a live sermon session and follow along with real-time translations.'}
-          </p>
-        </div>
+    <div className="flex flex-col pt-12 pb-16 px-8 w-full max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h1 className="font-serif text-4xl font-bold tracking-[-0.03em] text-[#0c3b28]">
+          {getGreeting(user.name)}
+        </h1>
+        <p className="mt-2 text-base text-[#4c6e4e]">
+          {isImam
+            ? 'Manage your sermon sessions and translations in real time.'
+            : 'Join a live sermon session and follow along with real-time translations.'}
+        </p>
+      </div>
 
         {/* Start New Session CTA (Imam Only) */}
         {isImam && (
@@ -70,7 +69,7 @@ export default function LiveSermons({ user }: LiveSermonsProps) {
         )}
 
         {/* Live Sessions */}
-        <div className="mx-auto">
+        <div className="w-full mx-auto">
           <div className="mb-4 flex items-center gap-3 justify-center">
             <h2 className="font-serif text-2xl font-semibold text-[#0c3b28]">Live Sessions</h2>
             <span className="flex items-center gap-1.5 rounded-full bg-[#eef7ec] px-3 py-0.5">
@@ -81,6 +80,5 @@ export default function LiveSermons({ user }: LiveSermonsProps) {
           <SessionsList currentUser={user} />
         </div>
       </div>
-    </div>
   )
 }

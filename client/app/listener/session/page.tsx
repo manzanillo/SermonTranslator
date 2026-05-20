@@ -101,7 +101,7 @@ export default function ListenerSessionPage() {
             <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-red-600 animate-pulse' : 'bg-gray-400'}`}></div>
             Live translation
           </div>
-          <div className="w-1/3 text-right truncate text-[#4c6e4e]">
+          <div className="w-1/3 text-right truncate">
             {session && session.imam ? session.imam.name : 'Imam'}
           </div>
         </div>

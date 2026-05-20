@@ -29,7 +29,6 @@ export default function StoredSermonsPage() {
   const [user, setUser] = useState<User | null>(() => getCachedUser())
   const [loading, setLoading] = useState(() => !getCachedUser())
   const [sessions, setSessions] = useState<Session[]>([])
-  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
   const [uiLanguage, setUiLanguage] = useState<'german' | 'english'>('english')
   const router = useRouter()
 
@@ -67,29 +66,18 @@ export default function StoredSermonsPage() {
     )
   }
 
-  const handleLookAt = () => {
-    if (selectedSessionId) {
-      router.push(`/stored/${selectedSessionId}`)
-    }
-  }
-
   return (
     <AppShell user={user}>
-      <div className="flex flex-col min-h-[calc(100vh-2rem)] py-8 px-12 relative max-w-5xl mx-auto">
+      <div className="flex flex-col pt-12 pb-16 px-8 w-full max-w-4xl mx-auto">
         
         {/* Header Row */}
-        <div className="flex items-center justify-between mb-12 h-10">
-          <h1 className="font-serif text-4xl font-bold tracking-tight text-[#0c3b28]">
+        <div className="mb-8 text-center flex flex-col items-center">
+          <h1 className="font-serif text-4xl font-bold tracking-[-0.03em] text-[#0c3b28]">
             Stored sermons
           </h1>
-          {selectedSessionId && (
-            <button
-              onClick={handleLookAt}
-              className="bg-[#288C49] text-white px-8 py-2 rounded-lg font-semibold shadow-sm hover:bg-[#1a6632] transition-colors"
-            >
-              Look at
-            </button>
-          )}
+          <p className="mt-2 text-base text-[#4c6e4e]">
+            Browse and review translation transcripts from past sermons.
+          </p>
         </div>
 
         {/* List */}
@@ -98,7 +86,6 @@ export default function StoredSermonsPage() {
             <p className="text-[#4c6e4e] font-medium text-lg">No stored sermons available.</p>
           ) : (
             sessions.map((session) => {
-              const isSelected = selectedSessionId === session.id
               let desc = session.description || ''
               if (desc.length > 25) {
                 desc = desc.substring(0, 25) + '...'
@@ -109,10 +96,8 @@ export default function StoredSermonsPage() {
               return (
                 <div
                   key={session.id}
-                  onClick={() => setSelectedSessionId(session.id)}
-                  className={`flex items-center justify-between px-6 py-6 cursor-pointer rounded-xl transition-colors duration-150 ${
-                    isSelected ? 'bg-[#dbeade]' : 'hover:bg-[#eef7ec]/50'
-                  }`}
+                  onClick={() => router.push(`/stored/${session.id}`)}
+                  className="flex items-center justify-between px-8 py-6 cursor-pointer rounded-xl transition-colors duration-150 bg-[#eef7ec] hover:bg-[#dbeade]"
                 >
                   <div>
                     <h2 className="font-serif text-3xl font-bold text-[#0c3b28] mb-1">

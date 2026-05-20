@@ -130,14 +130,19 @@ export default function SettingsPage() {
 
   return (
     <AppShell user={user}>
-      <div className="flex flex-col min-h-[calc(100vh-2rem)] py-12 px-12 relative max-w-2xl mx-auto w-full">
+      <div className="flex flex-col pt-12 pb-16 px-8 w-full max-w-4xl mx-auto">
         {/* Header */}
-        <h1 className="font-serif text-[2.5rem] font-bold tracking-tight text-[#0c3b28] mb-8">
-          Settings
-        </h1>
+        <div className="mb-8 text-center flex flex-col items-center">
+          <h1 className="font-serif text-4xl font-bold tracking-[-0.03em] text-[#0c3b28]">
+            Settings
+          </h1>
+          <p className="mt-2 text-base text-[#4c6e4e]">
+            Manage your account settings and update your security preferences.
+          </p>
+        </div>
 
         {/* Change Password Card */}
-        <div className="bg-white/80 border border-[#dbeade] rounded-2xl p-8 backdrop-blur-sm shadow-sm">
+        <div className="bg-white/80 border border-[#dbeade] rounded-2xl p-8 backdrop-blur-sm shadow-sm max-w-2xl mx-auto w-full">
           <h2 className="font-serif text-2xl font-bold text-[#0c3b28] mb-6">
             Change password
           </h2>

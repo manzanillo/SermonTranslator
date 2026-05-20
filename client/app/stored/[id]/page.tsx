@@ -92,10 +92,10 @@ export default function StoredSermonViewPage() {
           <div className="w-1/3 truncate">
             {session.title}
           </div>
-          <div className="w-1/3 text-center text-[#4c6e4e]">
+          <div className="w-1/3 text-center">
             Translation
           </div>
-          <div className="w-1/3 text-right truncate text-[#4c6e4e]">
+          <div className="w-1/3 text-right truncate">
             {session.imam ? session.imam.name : 'Imam'}
           </div>
         </div>
