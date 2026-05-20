@@ -76,26 +76,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         if (localComments) {
           setComments(JSON.parse(localComments))
         } else {
-          // Initialize mock comments exactly matching the design mockup if empty
-          const initialMockComments: Comment[] = [
-            {
-              id: 'c1',
-              authorName: 'Username 2',
-              content: `Beginning of the Reply Text ... Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor\nLorem Ipsum et Dolor`,
-              createdAt: 'date',
-              parentId: null
-            },
-            {
-              id: 'c2',
-              authorName: 'Username 3',
-              content: `Beginning of the Reply Text ... Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor\nLorem Ipsum et Dolor\nLorem Ipsum et DolorLorem Ipsum et DolorLorem Ipsum et DolorLorem Ipsum et DolorLorem Ipsum et DolorLorem Ipsum et Dolor`,
-              createdAt: 'date',
-              parentId: 'c1',
-              repliedToName: 'Username 2'
-            }
-          ]
-          setComments(initialMockComments)
-          localStorage.setItem(`forum_comments_${id}`, JSON.stringify(initialMockComments))
+          setComments([])
         }
       } catch (err) {
         console.error(err)
