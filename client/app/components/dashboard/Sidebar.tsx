@@ -115,7 +115,7 @@ export default function Sidebar({ user }: SidebarProps) {
       {/* User + Logout */}
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#288C49] text-white text-sm font-semibold">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#288C49] text-white text-sm font-serif font-semibold">
             {getInitials(user.name)}
           </div>
           <div className="min-w-0">
