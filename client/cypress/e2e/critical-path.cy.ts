@@ -9,7 +9,7 @@ describe('Critical path', () => {
   it('registers a new imam, logs in, and reaches the imam dashboard', () => {
     cy.visit(appUrl)
 
-    cy.contains('Create account').click()
+    cy.contains('button', 'Create account').click()
 
     cy.url().should('include', '/register')
     cy.get('#name').type(user.name)
