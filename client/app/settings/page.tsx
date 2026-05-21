@@ -4,13 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
 import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
+import { validatePassword } from '../utils/password'
 import { User } from '../types'
 import { Input } from '../components/ui/input'
 
-const validatePassword = (password: string) => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
-  return passwordRegex.test(password)
-}
 
 export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(() => getCachedUser())
