@@ -140,7 +140,7 @@ export default function LoginForm() {
       </div>
 
       {error ? (
-        <div className="rounded-2xl border border-[#f5d0d0] bg-[#fff1f1] px-4 py-3 text-sm text-[#9b2c2c]" role="alert">
+        <div className="rounded-2xl border border-[#f5d0d0] bg-[#fff1f1] px-4 py-3 text-sm text-[#9b2c2c]" role="alert" data-cy="error-message">
           {error}
         </div>
       ) : null}
