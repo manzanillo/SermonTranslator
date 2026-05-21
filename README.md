@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 # Zermon
-=======
-# Zermon - stream translated sermons!
->>>>>>> cabbe5b6e03e8af4ccf8ef7126e4e36b4de2d910
 
 A sermon streaming service that translates spoken turkish into german/english.
 
