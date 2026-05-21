@@ -53,12 +53,11 @@ Wenn Der Angreifer den Payload ändert, stimmt sie nicht mehr mit dem Token übe
 Die App hat noch Broken Access Control issues hinsichtlich fehlender Authentifizierung, fehlender Berechtigungseinschränkungen und öffentliche Datenschutzdaten. Zu dem gibt es noch keine passwort strength validation oder rate limiting.
 
 ## Test Pyramide
-Ebene       Was testen wir?         Tool
+Ebene-Was testen wir?-Tool
 
-Unit        Textverarbeitung        Vitest
-Integration Session-path testen     Vitest
-E2E         Login-Flow, Session     Cypress
-            start/participate
+Unit-Textverarbeitung-Vitest
+Integration-Session-path testen-Vitest
+E2E-Login-Flow, Session start/participate-Cypress
 
 Welche zwei Dinge würde am meisten Schaden, wenn es durch den Agenten kaputt geht?
-      Session erstellen und dass man Sessions beitreten kann.
+      -Session erstellen und dass man Sessions beitreten kann.
