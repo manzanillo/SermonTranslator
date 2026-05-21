@@ -51,17 +51,14 @@ Wenn Der Angreifer den Payload ändert, stimmt sie nicht mehr mit dem Token übe
 ## Security Audit: 06-05-2026
 
 Die App hat noch Broken Access Control issues hinsichtlich fehlender Authentifizierung, fehlender Berechtigungseinschränkungen und öffentliche Datenschutzdaten. Zu dem gibt es noch keine passwort strength validation oder rate limiting.
-<<<<<<< HEAD
 
 ## Test Pyramide
 Ebene       Was testen wir?         Tool
 
-Unit        
+Unit        Textverarbeitung        Vitest
 Integration Session-path testen     Vitest
 E2E         Login-Flow, Session     Cypress
             start/participate
 
 Welche zwei Dinge würde am meisten Schaden, wenn es durch den Agenten kaputt geht?
       Session erstellen und dass man Sessions beitreten kann.
-=======
->>>>>>> cabbe5b6e03e8af4ccf8ef7126e4e36b4de2d910
