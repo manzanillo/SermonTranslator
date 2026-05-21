@@ -35,13 +35,13 @@ export default function StoredSermonsPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const authRes = await authFetch('http://localhost:3001/api/auth/me')
+        const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
         setCachedUser(authData.user)
 
-        const sessRes = await authFetch('http://localhost:3001/api/sessions')
+        const sessRes = await authFetch('/api/sessions')
         if (sessRes.ok) {
           const allSessions: Session[] = await sessRes.json()
           // Filter only INACTIVE sessions for the "Stored Sermons" page

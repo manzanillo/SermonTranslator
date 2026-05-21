@@ -33,7 +33,7 @@ export default function SettingsPage() {
 
     const init = async () => {
       try {
-        const authRes = await authFetch('http://localhost:3001/api/auth/me')
+        const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
@@ -86,7 +86,7 @@ export default function SettingsPage() {
     setIsSubmitting(true)
 
     try {
-      const res = await authFetch('http://localhost:3001/api/auth/change-password', {
+      const res = await authFetch('/api/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

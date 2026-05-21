@@ -23,7 +23,7 @@ export async function authFetch(url: string, options: RequestInit = {}, handle40
     // Token is invalid, clear cache, logout and redirect
     setCachedUser(null);
     try {
-      await fetch('http://localhost:3001/api/auth/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });

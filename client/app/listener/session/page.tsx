@@ -22,7 +22,7 @@ export default function ListenerSessionPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const res = await authFetch('http://localhost:3001/api/sessions')
+        const res = await authFetch('/api/sessions')
         if (res.ok) {
           const sessions = await res.json()
           // For now, just grab the first active session to join
@@ -40,7 +40,7 @@ export default function ListenerSessionPage() {
 
   // Initialize Socket
   useEffect(() => {
-    socketRef.current = io('http://localhost:3001')
+    socketRef.current = io('')
 
     socketRef.current.on('translation', (data: { original: string; german: string; english: string }) => {
       setSegments(prev => {

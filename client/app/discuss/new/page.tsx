@@ -27,7 +27,7 @@ export default function NewForumPostPage() {
     setIsSubmitting(true)
 
     try {
-      const res = await authFetch('http://localhost:3001/api/forums', {
+      const res = await authFetch('/api/forums', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

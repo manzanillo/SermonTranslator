@@ -97,14 +97,14 @@ export default function ForumDetailPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const authRes = await authFetch('http://localhost:3001/api/auth/me')
+        const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
         setCachedUser(authData.user)
 
         // Try to fetch post from backend, fallback to matching mock post
-        const forumRes = await authFetch('http://localhost:3001/api/forums')
+        const forumRes = await authFetch('/api/forums')
         let foundPost: ForumPost | null = null
 
         if (forumRes.ok) {

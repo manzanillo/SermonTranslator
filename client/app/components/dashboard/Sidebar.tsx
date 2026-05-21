@@ -69,7 +69,7 @@ export default function Sidebar({ user }: SidebarProps) {
     const { setCachedUser } = require('../../utils/auth')
     setCachedUser(null)
     try {
-      await authFetch('http://localhost:3001/api/auth/logout', { method: 'POST' }, false)
+      await authFetch('/api/auth/logout', { method: 'POST' }, false)
     } catch {}
     window.location.href = '/login'
   }

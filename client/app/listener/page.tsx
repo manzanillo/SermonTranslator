@@ -15,7 +15,7 @@ export default function ListenerPage() {
   useEffect(() => {
     const checkAuthorization = async () => {
       try {
-        const response = await authFetch('http://localhost:3001/api/auth/me')
+        const response = await authFetch('/api/auth/me')
         if (response.ok) {
           const data = await response.json()
           if (data.user.role === 'listener') {

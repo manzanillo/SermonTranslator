@@ -17,7 +17,7 @@ export default function StoredSermonViewPage() {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const res = await authFetch(`http://localhost:3001/api/sessions/${id}`)
+        const res = await authFetch(`/api/sessions/${id}`)
         if (res.ok) {
           const data = await res.json()
           setSession(data)

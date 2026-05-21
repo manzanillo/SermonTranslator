@@ -38,7 +38,7 @@ app.use(cookieParser());
 // ============================================================================
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 12, // 12 attempts per window
+  max: process.env.NODE_ENV === 'production' ? 12 : 1000, // Allow more in dev for Cypress
   message: 'Too many login attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
@@ -46,7 +46,7 @@ const loginLimiter = rateLimit({
 
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 12, // 12 registrations per hour
+  max: process.env.NODE_ENV === 'production' ? 12 : 1000, // Allow more in dev for Cypress
   message: 'Too many registrations, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
@@ -293,7 +293,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
 

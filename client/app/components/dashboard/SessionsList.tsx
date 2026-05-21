@@ -16,7 +16,7 @@ export default function SessionsList({ currentUser }: SessionsListProps) {
 
   const fetchSessions = async () => {
     try {
-      const res = await authFetch('http://localhost:3001/api/sessions')
+      const res = await authFetch('/api/sessions')
       if (!res.ok) throw new Error('Failed to fetch')
       const data: Session[] = await res.json()
       setSessions(data.filter((s) => s.isActive))

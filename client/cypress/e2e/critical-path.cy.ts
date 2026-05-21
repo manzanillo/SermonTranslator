@@ -18,13 +18,14 @@ describe('Critical path', () => {
     cy.get('#role').select('imam')
 
     cy.contains('Create account').click()
+    cy.get('[role="alert"]').should('not.exist')
 
     cy.url().should('include', '/login')
     cy.contains('Welcome back to Zermon').should('be.visible')
 
     cy.get('#email').type(user.email)
     cy.get('#password').type(user.password)
-    cy.contains('Sign in').click()
+    cy.contains('button', 'Sign in').click()
 
     cy.url({ timeout: 10000 }).should('include', '/imam')
     cy.contains('Manage your sermon sessions and translations in real time.').should('be.visible')

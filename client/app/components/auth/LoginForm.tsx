@@ -50,7 +50,7 @@ export default function LoginForm() {
 
     try {
       const response = await authFetch(
-        'http://localhost:3001/api/auth/login',
+        '/api/auth/login',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

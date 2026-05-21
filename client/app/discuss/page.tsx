@@ -24,13 +24,13 @@ export default function DiscussPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        const authRes = await authFetch('http://localhost:3001/api/auth/me')
+        const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
         setCachedUser(authData.user)
 
-        const forumRes = await authFetch('http://localhost:3001/api/forums')
+        const forumRes = await authFetch('/api/forums')
         if (forumRes.ok) {
           const data = await forumRes.json()
           setForums(data)

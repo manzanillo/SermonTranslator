@@ -81,7 +81,7 @@ export default function RegisterForm() {
 
     try {
       const response = await authFetch(
-        'http://localhost:3001/api/auth/register',
+        '/api/auth/register',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

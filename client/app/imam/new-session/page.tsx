@@ -27,7 +27,7 @@ export default function NewSessionPage() {
     setIsSubmitting(true)
 
     try {
-      const res = await authFetch('http://localhost:3001/api/sessions', {
+      const res = await authFetch('/api/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

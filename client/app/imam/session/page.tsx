@@ -36,11 +36,11 @@ export default function ActiveSessionPage() {
     const fetchSession = async () => {
       try {
         // Just fetch all sessions for simplicity, filter the active one for this user
-        const meRes = await authFetch('http://localhost:3001/api/auth/me')
+        const meRes = await authFetch('/api/auth/me')
         if (!meRes.ok) throw new Error('Not auth')
         const meData = await meRes.json()
 
-        const res = await authFetch('http://localhost:3001/api/sessions')
+        const res = await authFetch('/api/sessions')
         if (res.ok) {
           const sessions = await res.json()
           const active = sessions.find((s: Session) => s.imamId === meData.user.id && s.isActive)
@@ -62,7 +62,7 @@ export default function ActiveSessionPage() {
   useEffect(() => {
     if (!session?.id) return; // Wait until session is loaded
 
-    socketRef.current = io('http://localhost:3001') // Connect to backend
+    socketRef.current = io('') // Connect to backend
     
     // Start session on socket
     socketRef.current.emit('startSession', { sessionId: session.id })
