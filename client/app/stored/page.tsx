@@ -26,8 +26,8 @@ function calculateSessionDuration(session: Session) {
 }
 
 export default function StoredSermonsPage() {
-  const [user, setUser] = useState<User | null>(() => getCachedUser())
-  const [loading, setLoading] = useState(() => !getCachedUser())
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
   const [sessions, setSessions] = useState<Session[]>([])
   const [uiLanguage, setUiLanguage] = useState<'german' | 'english'>('english')
   const router = useRouter()
@@ -35,6 +35,11 @@ export default function StoredSermonsPage() {
   useEffect(() => {
     const init = async () => {
       try {
+        const cachedUser = getCachedUser()
+        if (cachedUser) {
+          setUser(cachedUser)
+        }
+
         const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()

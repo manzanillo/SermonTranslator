@@ -8,12 +8,17 @@ import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { User } from '../types'
 
 export default function ImamPage() {
-  const [user, setUser] = useState<User | null>(() => getCachedUser())
-  const [loading, setLoading] = useState(() => !getCachedUser())
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     const checkAuthorization = async () => {
+      const cachedUser = getCachedUser()
+      if (cachedUser) {
+        setUser(cachedUser)
+      }
+
       try {
         const response = await authFetch('/api/auth/me')
         if (response.ok) {

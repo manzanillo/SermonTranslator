@@ -155,13 +155,11 @@ io.on('connection', (socket) => {
         });
 
         if (translationsCount === 0) {
-          // Delete session if no content
           await prisma.session.delete({
             where: { id: data.sessionId }
           });
           console.log(`Session ${data.sessionId} deleted (no content).`);
         } else {
-          // Mark as inactive to move to stored sermons
           await prisma.session.update({
             where: { id: data.sessionId },
             data: { isActive: false }
@@ -488,6 +486,8 @@ app.post('/api/sessions', authenticate, async (req, res) => {
       }
     });
 
+    sendSseEvent('sessionsUpdated', { sessionId: newSession.id, title: newSession.title })
+
     res.status(201).json({
       message: 'Session created successfully',
       session: newSession
@@ -497,6 +497,34 @@ app.post('/api/sessions', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Failed to create session' });
   }
 });
+
+const sseClients = new Set()
+
+function sendSseEvent(eventName, data = {}) {
+  const payload = typeof data === 'string' ? data : JSON.stringify(data)
+
+  for (const client of sseClients) {
+    client.write(`event: ${eventName}\n`)
+    client.write(`data: ${payload}\n\n`)
+  }
+}
+
+app.get('/api/events', authenticate, (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173')
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+
+  res.flushHeaders?.()
+  res.write('retry: 10000\n\n')
+
+  sseClients.add(res)
+
+  req.on('close', () => {
+    sseClients.delete(res)
+  })
+})
 
 // GET /api/sessions - Get all sessions
 app.get('/api/sessions', authenticate, async (req, res) => {
@@ -511,6 +539,48 @@ app.get('/api/sessions', authenticate, async (req, res) => {
     res.status(200).json(sessions);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch sessions' });
+  }
+});
+
+// POST /api/sessions/:id/end - End a session
+app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
+  const sessionId = parseInt(req.params.id, 10);
+
+  if (Number.isNaN(sessionId)) {
+    return res.status(400).json({ error: 'Invalid session ID' });
+  }
+
+  try {
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      include: { translations: true }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (session.imamId !== req.user.userId) {
+      return res.status(403).json({ error: 'Only the session imam can end this session' });
+    }
+
+    if (session.translations.length === 0) {
+      await prisma.session.delete({ where: { id: sessionId } });
+    } else {
+      await prisma.session.update({
+        where: { id: sessionId },
+        data: { isActive: false }
+      });
+    }
+
+    sendSseEvent('sessionsUpdated', { sessionId, ended: true });
+    io.emit('sessionStatus', { active: false });
+    io.emit('sessionEnded');
+
+    res.status(200).json({ message: 'Session ended successfully' });
+  } catch (error) {
+    console.error('Failed to end session via API:', error);
+    res.status(500).json({ error: 'Failed to end session' });
   }
 });
 

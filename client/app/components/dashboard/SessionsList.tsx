@@ -30,8 +30,22 @@ export default function SessionsList({ currentUser }: SessionsListProps) {
 
   useEffect(() => {
     fetchSessions()
-    const interval = setInterval(fetchSessions, 5000)
-    return () => clearInterval(interval)
+
+    const source = new EventSource('/api/events', { withCredentials: true })
+
+    const handleSessionsUpdated = () => {
+      fetchSessions()
+    }
+
+    source.addEventListener('sessionsUpdated', handleSessionsUpdated)
+    source.onerror = () => {
+      source.close()
+    }
+
+    return () => {
+      source.removeEventListener('sessionsUpdated', handleSessionsUpdated)
+      source.close()
+    }
   }, [])
 
   if (loading) {

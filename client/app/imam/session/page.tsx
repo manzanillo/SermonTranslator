@@ -26,6 +26,7 @@ export default function ActiveSessionPage() {
   const [segments, setSegments] = useState<string[]>([])
   const [sessionTime, setSessionTime] = useState(0)
   const [debugInput, setDebugInput] = useState('')
+  const [isEnding, setIsEnding] = useState(false)
   
   const socketRef = useRef<Socket | null>(null)
   const recognitionRef = useRef<any>(null)
@@ -132,17 +133,28 @@ export default function ActiveSessionPage() {
     }
   }, [session?.id])
 
-  const handleEndSession = () => {
-    // End session in backend
-    if (session?.id) {
-      socketRef.current?.emit('endSession', { sessionId: session.id })
+  const handleEndSession = async () => {
+    if (!session?.id || isEnding) return
+    setIsEnding(true)
+
+    try {
+      const res = await authFetch(`/api/sessions/${session.id}/end`, {
+        method: 'POST'
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('Failed to end session:', data.error || 'Unknown error')
+      }
+    } catch (error) {
+      console.error('Failed to end session:', error)
     }
-    
+
     // Stop local resources
     recognitionRef.current?.stop()
     if (timerRef.current) clearInterval(timerRef.current)
 
-    // Delay disconnect and redirect to ensure socket emit goes through
+    // Delay disconnect and redirect so cleanup can complete
     setTimeout(() => {
       if (socketRef.current) {
         socketRef.current.disconnect()
@@ -288,9 +300,10 @@ export default function ActiveSessionPage() {
       <div className="flex justify-center pb-8 mt-auto">
         <button
           onClick={handleEndSession}
-          className="rounded-lg bg-[#b91c1c] px-14 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-[#991b1b] transition-colors duration-150"
+          disabled={isEnding}
+          className="rounded-lg bg-[#b91c1c] px-14 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-[#991b1b] transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          End Session
+          {isEnding ? 'Ending…' : 'End Session'}
         </button>
       </div>
     </div>
