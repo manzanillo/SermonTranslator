@@ -61,3 +61,13 @@ E2E-Login-Flow, Session start/participate-Cypress
 
 Welche zwei Dinge würde am meisten Schaden, wenn es durch den Agenten kaputt geht?
       -Session erstellen und dass man Sessions beitreten kann.
+
+
+## SSE oder Socket.io?
+
+Gibt es Daten in eurer App, die sich ändern können, während ein anderer Nutzer die Seite offen hat? - Ja, die Forumbeiträge und deren Kommentare, die Live-Sessions, die Stored-Sessions und die Übersetzungen in den Sessions.
+Müssen Änderungen sofort sichtbar sein – oder reicht ein Reload? - Also die Übersetzungen aus den Sessions sollte aufjedenfall sofort sichtbar sein, alles andere kann bei einem Reload getätigt werden
+Ist die Kommunikation einseitig (Server → Client) oder bidirektional (beide senden)? - Bidirektional, da der Imam auch Information an den Server schickt, der diese dann verteilen soll.
+Wie viele Clients könnten gleichzeitig verbunden sein? - Ich wollte den Scope der App eigentlich so setzen, dass Sessions nur lokal mit 3-25 Leuten geschehen, aber mittlerweile entwickelt es sich mehr zu einer Streaming plattform, also kann von 0-200 Leuten sein
+
+Trefft danach eine begründete Technologieentscheidung: Also für die Stored-Sermons reicht SSE, für die Anzeige der Forumbeiträge reicht auch SSE aber für deren Kommentarsektion könnte man Websockets einbauen, und für die Übersetzungen aufjedenfall Websockets.
