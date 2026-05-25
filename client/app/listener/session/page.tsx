@@ -18,7 +18,7 @@ export default function ListenerSessionPage() {
   
   const socketRef = useRef<Socket | null>(null)
 
-  // Fetch active session on mount
+  // Fetch active session on mount and when SSE updates occur
   useEffect(() => {
     const fetchSession = async () => {
       try {
@@ -29,18 +29,33 @@ export default function ListenerSessionPage() {
           const active = sessions.find((s: Session) => s.isActive)
           if (active) {
             setSession(active)
+          } else {
+            setSession(null)
           }
         }
       } catch (err) {
         console.error(err)
       }
     }
+    
     fetchSession()
+    
+    const { io } = require('socket.io-client')
+    const socket = io('http://localhost:3001')
+    
+    const handleSessionsUpdated = () => {
+      fetchSession()
+    }
+    
+    socket.on('sessionsUpdated', handleSessionsUpdated)
+
+    return () => {
+      socket.disconnect()
+    }
   }, [])
 
-  // Initialize Socket
   useEffect(() => {
-    socketRef.current = io('')
+    socketRef.current = io('http://localhost:3001')
 
     socketRef.current.on('translation', (data: { original: string; german: string; english: string }) => {
       setSegments(prev => {
@@ -63,6 +78,8 @@ export default function ListenerSessionPage() {
     socketRef.current.on('sessionEnded', () => {
       setIsLive(false)
       setSegments([])
+      window.alert('The session has ended.')
+      router.push('/listener')
     })
 
     return () => {

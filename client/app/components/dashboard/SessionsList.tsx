@@ -31,20 +31,19 @@ export default function SessionsList({ currentUser }: SessionsListProps) {
   useEffect(() => {
     fetchSessions()
 
-    const source = new EventSource('/api/events', { withCredentials: true })
+    const { io } = require('socket.io-client')
+    const socket = io('http://localhost:3001')
 
     const handleSessionsUpdated = () => {
       fetchSessions()
     }
 
-    source.addEventListener('sessionsUpdated', handleSessionsUpdated)
-    source.onerror = () => {
-      source.close()
-    }
+    socket.on('sessionsUpdated', handleSessionsUpdated)
+    socket.on('sessionEnded', handleSessionsUpdated)
+    socket.on('sessionStatus', handleSessionsUpdated)
 
     return () => {
-      source.removeEventListener('sessionsUpdated', handleSessionsUpdated)
-      source.close()
+      socket.disconnect()
     }
   }, [])
 

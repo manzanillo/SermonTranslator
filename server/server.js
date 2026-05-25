@@ -487,6 +487,7 @@ app.post('/api/sessions', authenticate, async (req, res) => {
     });
 
     sendSseEvent('sessionsUpdated', { sessionId: newSession.id, title: newSession.title })
+    io.emit('sessionsUpdated', { sessionId: newSession.id, title: newSession.title })
 
     res.status(201).json({
       message: 'Session created successfully',
@@ -530,6 +531,9 @@ app.get('/api/events', authenticate, (req, res) => {
 app.get('/api/sessions', authenticate, async (req, res) => {
   try {
     const sessions = await prisma.session.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
       include: {
         imam: true,
         participants: true,
@@ -574,8 +578,10 @@ app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
     }
 
     sendSseEvent('sessionsUpdated', { sessionId, ended: true });
+    io.emit('sessionsUpdated', { sessionId, ended: true });
     io.emit('sessionStatus', { active: false });
     io.emit('sessionEnded');
+    sessionActive = false;
 
     res.status(200).json({ message: 'Session ended successfully' });
   } catch (error) {

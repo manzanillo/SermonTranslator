@@ -63,7 +63,7 @@ export default function ActiveSessionPage() {
   useEffect(() => {
     if (!session?.id) return; // Wait until session is loaded
 
-    socketRef.current = io('') // Connect to backend
+    socketRef.current = io('http://localhost:3001') // Connect to backend
     
     // Start session on socket
     socketRef.current.emit('startSession', { sessionId: session.id })

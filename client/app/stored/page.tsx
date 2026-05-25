@@ -49,8 +49,8 @@ export default function StoredSermonsPage() {
         const sessRes = await authFetch('/api/sessions')
         if (sessRes.ok) {
           const allSessions: Session[] = await sessRes.json()
-          // Filter only INACTIVE sessions for the "Stored Sermons" page
-          setSessions(allSessions.filter(s => !s.isActive))
+          // Filter only INACTIVE sessions for the "Stored Sermons" page and cap at 20
+          setSessions(allSessions.filter(s => !s.isActive).slice(0, 20))
         }
       } catch (err) {
         router.push('/login')
