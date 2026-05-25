@@ -78,8 +78,7 @@ export default function ListenerSessionPage() {
     socketRef.current.on('sessionEnded', () => {
       setIsLive(false)
       setSegments([])
-      window.alert('The session has ended.')
-      router.push('/listener')
+      router.push('/listener?ended=true')
     })
 
     return () => {
