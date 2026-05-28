@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
 import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { User, ForumPost } from '../types'
+import { useSSE } from '../utils/useSSE'
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
@@ -16,14 +17,21 @@ function formatDate(dateStr: string) {
 }
 
 export default function DiscussPage() {
-  const [user, setUser] = useState<User | null>(() => getCachedUser())
-  const [loading, setLoading] = useState(() => !getCachedUser())
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
   const [forums, setForums] = useState<ForumPost[]>([])
   const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
       try {
+        // Try to use cached user first for faster render
+        const cached = getCachedUser()
+        if (cached) {
+          setUser(cached)
+          setLoading(false)
+        }
+
         const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
@@ -43,6 +51,14 @@ export default function DiscussPage() {
     }
     init()
   }, [router])
+
+  // SSE listener for real-time forum updates (top-level hook call)
+  useSSE('forumsUpdated', useCallback(() => {
+    authFetch('/api/forums')
+      .then(r => r.json())
+      .then(setForums)
+      .catch(console.error)
+  }, []))
 
   if (loading || !user) {
     return (

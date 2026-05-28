@@ -860,6 +860,8 @@ app.post('/api/forums', authenticate, async (req, res) => {
       include: { author: true }
     });
 
+    sendSseEvent('forumsUpdated', { postId: newPost.id, title: newPost.title });
+
     res.status(201).json({
       message: 'Forum post created successfully',
       post: newPost
@@ -867,6 +869,54 @@ app.post('/api/forums', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Forum post creation error:', error);
     res.status(500).json({ error: 'Failed to create forum post' });
+  }
+});
+
+// GET /api/forums/:id/comments - Get comments for a specific forum post
+app.get('/api/forums/:id/comments', authenticate, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const comments = await prisma.forumComment.findMany({
+      where: { postId: parseInt(id) },
+      include: { author: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.status(200).json(comments);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+// POST /api/forums/:id/comments - Create a new comment
+app.post('/api/forums/:id/comments', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { content, parentId, repliedToName } = req.body;
+
+  if (!content) {
+    return res.status(400).json({ error: 'Missing comment content' });
+  }
+
+  try {
+    const newComment = await prisma.forumComment.create({
+      data: {
+        content: content.trim(),
+        authorId: req.user.userId,
+        postId: parseInt(id),
+        parentId: parentId || null,
+        repliedToName: repliedToName || null
+      },
+      include: { author: true }
+    });
+
+    sendSseEvent('commentsUpdated', { forumId: parseInt(id), commentId: newComment.id });
+
+    res.status(201).json({
+      message: 'Comment created successfully',
+      comment: newComment
+    });
+  } catch (error) {
+    console.error('Comment creation error:', error);
+    res.status(500).json({ error: 'Failed to create comment' });
   }
 });
 

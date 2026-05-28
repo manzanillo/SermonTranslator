@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { authFetch, getCachedUser, setCachedUser } from '../../utils/auth'
 import { User, ForumPost } from '../../types'
-
+import { useSSE } from '../../utils/useSSE'
 interface Comment {
   id: string
   authorName: string
@@ -128,12 +128,13 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         }
         setPost(foundPost)
 
-        // Load comments from LocalStorage per forum ID
-        const localComments = localStorage.getItem(`forum_comments_${id}`)
-        if (localComments) {
-          setComments(JSON.parse(localComments))
+        // Load comments from backend via API
+        const commentsRes = await authFetch(`/api/forums/${id}/comments`);
+        if (commentsRes.ok) {
+          const fetchedComments = await commentsRes.json();
+          setComments(fetchedComments);
         } else {
-          setComments([])
+          setComments([]);
         }
       } catch (err) {
         console.error(err)
@@ -145,25 +146,37 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
     if (id) init()
   }, [id, router])
 
-  const saveComments = (updated: Comment[]) => {
-    setComments(updated)
-    localStorage.setItem(`forum_comments_${id}`, JSON.stringify(updated))
+  // Refresh comments from the backend
+  const refreshComments = async () => {
+    const res = await authFetch(`/api/forums/${id}/comments`)
+    if (res.ok) {
+      setComments(await res.json())
+    } else {
+      setComments([])
+    }
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim() || !user) return
 
-    const newComment: Comment = {
-      id: `comment_${Date.now()}`,
-      authorName: user.name,
+    const payload = {
       content: inputValue,
-      createdAt: new Date().toISOString(),
       parentId: replyingTo ? replyingTo.id : null,
       repliedToName: replyingTo ? replyingTo.authorName : null
     }
-
-    const updatedComments = [...comments, newComment]
-    saveComments(updatedComments)
+    try {
+      const res = await authFetch(`/api/forums/${id}/comments`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      if (res.ok) {
+        await refreshComments()
+      } else {
+        console.error('Failed to post comment')
+      }
+    } catch (e) {
+      console.error(e)
+    }
     setInputValue('')
     setReplyingTo(null)
   }
@@ -175,6 +188,24 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
       inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }, 50)
   }
+
+  // SSE listener for real‑time comment updates
+  useSSE((event) => {
+    if (event.type === 'commentsUpdated') {
+      try {
+        const data = JSON.parse(event.data);
+        // If the event is for this forum, refetch comments
+        if (data.forumId === parseInt(id)) {
+          authFetch(`/api/forums/${id}/comments`)
+            .then(r => r.ok ? r.json() : [])
+            .then(setComments)
+            .catch(console.error);
+        }
+      } catch (e) {
+        console.error('SSE comment parse error', e);
+      }
+    }
+  });
 
   interface FlatComment extends Comment {
     depth: number
