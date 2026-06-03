@@ -98,3 +98,20 @@ Die Live Speech Translation sollte aufjedenfall eine websocket implementierung h
 Das Auflisten von Sessions oder Foren sollte von SSE Stack zu Polling wechseln, da hier der Kostengrund überwiegt.
 Die Thread Comments sollten ebenfalls von SSE auf Polling umswitchen, da Diskussionen Kommentare asynchron passieren, und polling skaliert besser mit stateless Servern.
 Diese Changes setzte ich um.
+
+## Notification-Bedarf der App
+
+Events            Notification sinnvoll?        Typ               Kanal       Begründung
+
+Imam startet      Nein                          Transactional     Web         Nicht klar, ob
+neues Session                                                                 User den Stream
+                                                                              überhaupt hören will.
+Neuer Forum       Nein                          Transactional     Web         Auch hier nicht 
+Post                                                                          nicht klar, ob
+                                                                              User ihn lesen will.
+Session endet     Ja                            Transactional     Web         User sollte wissen
+                                                                              warum die Session nicht mehr da ist.
+
+Die Sinnhaftigkeit der Notification würde im Laufe der Entwicklung variieren, vorallem wenn mehr Features hinzukommen würden.
+
+Für das Ende einer Session, ist bereits eine Push-Benachrichtigung eingesetzt. Für das Ändern vom Passwort sollte man noch eine transactional E-Mail rausschicken.
