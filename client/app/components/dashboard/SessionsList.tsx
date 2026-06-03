@@ -31,20 +31,12 @@ export default function SessionsList({ currentUser }: SessionsListProps) {
   useEffect(() => {
     fetchSessions()
 
-    const { io } = require('socket.io-client')
-    const socket = io('http://localhost:3001')
-
-    const handleSessionsUpdated = () => {
+    // Poll for sessions updates every 15 seconds
+    const interval = setInterval(() => {
       fetchSessions()
-    }
+    }, 15000)
 
-    socket.on('sessionsUpdated', handleSessionsUpdated)
-    socket.on('sessionEnded', handleSessionsUpdated)
-    socket.on('sessionStatus', handleSessionsUpdated)
-
-    return () => {
-      socket.disconnect()
-    }
+    return () => clearInterval(interval)
   }, [])
 
   if (loading) {

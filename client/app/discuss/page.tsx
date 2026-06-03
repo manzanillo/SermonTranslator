@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
 import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
 import { User, ForumPost } from '../types'
-import { useSSE } from '../utils/useSSE'
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
@@ -52,13 +51,16 @@ export default function DiscussPage() {
     init()
   }, [router])
 
-  // SSE listener for real-time forum updates (top-level hook call)
-  useSSE('forumsUpdated', useCallback(() => {
-    authFetch('/api/forums')
-      .then(r => r.json())
-      .then(setForums)
-      .catch(console.error)
-  }, []))
+  // Poll for new forum posts every 15 seconds (replaced SSE push)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      authFetch('/api/forums')
+        .then(r => r.json())
+        .then(setForums)
+        .catch(console.error)
+    }, 15_000)
+    return () => clearInterval(interval)
+  }, [])
 
   if (loading || !user) {
     return (

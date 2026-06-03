@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { authFetch, getCachedUser, setCachedUser } from '../../utils/auth'
 import { User, ForumPost } from '../../types'
-import { useSSE } from '../../utils/useSSE'
 
 // Comment interface matching the API response shape from Prisma
 // (ForumComment with author relation included)
@@ -163,12 +162,14 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
     if (id) init()
   }, [id, router, refreshComments])
 
-  // SSE listener for real-time comment updates from other users
-  useSSE('commentsUpdated', useCallback((data: any) => {
-    if (data.forumId === parseInt(id)) {
+  // Poll for new comments every 5 seconds (replaced SSE push)
+  useEffect(() => {
+    if (!id) return
+    const interval = setInterval(() => {
       refreshComments()
-    }
-  }, [id, refreshComments]))
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [id, refreshComments])
 
   const handleSend = async () => {
     if (!inputValue.trim() || !user) return

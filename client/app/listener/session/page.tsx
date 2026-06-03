@@ -39,19 +39,12 @@ export default function ListenerSessionPage() {
     }
     
     fetchSession()
-    
-    const { io } = require('socket.io-client')
-    const socket = io('http://localhost:3001')
-    
-    const handleSessionsUpdated = () => {
+    // Poll for active session every 15 seconds
+    const interval = setInterval(() => {
       fetchSession()
-    }
-    
-    socket.on('sessionsUpdated', handleSessionsUpdated)
+    }, 15000)
 
-    return () => {
-      socket.disconnect()
-    }
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {

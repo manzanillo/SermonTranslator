@@ -486,8 +486,6 @@ app.post('/api/sessions', authenticate, async (req, res) => {
       }
     });
 
-    sendSseEvent('sessionsUpdated', { sessionId: newSession.id, title: newSession.title })
-    io.emit('sessionsUpdated', { sessionId: newSession.id, title: newSession.title })
 
     res.status(201).json({
       message: 'Session created successfully',
@@ -499,33 +497,7 @@ app.post('/api/sessions', authenticate, async (req, res) => {
   }
 });
 
-const sseClients = new Set()
 
-function sendSseEvent(eventName, data = {}) {
-  const payload = typeof data === 'string' ? data : JSON.stringify(data)
-
-  for (const client of sseClients) {
-    client.write(`event: ${eventName}\n`)
-    client.write(`data: ${payload}\n\n`)
-  }
-}
-
-app.get('/api/events', authenticate, (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:5173')
-  res.setHeader('Access-Control-Allow-Credentials', 'true')
-
-  res.flushHeaders?.()
-  res.write('retry: 10000\n\n')
-
-  sseClients.add(res)
-
-  req.on('close', () => {
-    sseClients.delete(res)
-  })
-})
 
 // GET /api/sessions - Get all sessions
 app.get('/api/sessions', authenticate, async (req, res) => {
@@ -577,8 +549,6 @@ app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
       });
     }
 
-    sendSseEvent('sessionsUpdated', { sessionId, ended: true });
-    io.emit('sessionsUpdated', { sessionId, ended: true });
     io.emit('sessionStatus', { active: false });
     io.emit('sessionEnded');
     sessionActive = false;
@@ -860,7 +830,7 @@ app.post('/api/forums', authenticate, async (req, res) => {
       include: { author: true }
     });
 
-    sendSseEvent('forumsUpdated', { postId: newPost.id, title: newPost.title });
+
 
     res.status(201).json({
       message: 'Forum post created successfully',
@@ -908,7 +878,7 @@ app.post('/api/forums/:id/comments', authenticate, async (req, res) => {
       include: { author: true }
     });
 
-    sendSseEvent('commentsUpdated', { forumId: parseInt(id), commentId: newComment.id });
+
 
     res.status(201).json({
       message: 'Comment created successfully',

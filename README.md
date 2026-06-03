@@ -30,7 +30,7 @@ Klar CSR, da Websockets für meine Anwendung wichtig sind und diese besser mit C
 /register, /login, /logout, /me, /change-password, /users, /sessions, /translations, /forums, 
 
 Hierarchie: /InputTurkish can only be accessed from the /Imam, who is also the only one who can start a /session
-            /Translations can only be viewed by the /Listener, who can participate in a session
+            /Translations can be viewed by everyone
 
 Strukturentscheidung: "Flaches Design mit Query-Parametern", da meine App wenige Daten handelt, sondern der meiste Traffic in Echtzeit passiert.
 
@@ -71,3 +71,30 @@ Ist die Kommunikation einseitig (Server → Client) oder bidirektional (beide se
 Wie viele Clients könnten gleichzeitig verbunden sein? - Ich wollte den Scope der App eigentlich so setzen, dass Sessions nur lokal mit 3-25 Leuten geschehen, aber mittlerweile entwickelt es sich mehr zu einer Streaming plattform, also kann von 0-200 Leuten sein
 
 Trefft danach eine begründete Technologieentscheidung: Also für die Stored-Sermons reicht SSE, für die Anzeige der Forumbeiträge reicht auch SSE aber für deren Kommentarsektion könnte man Websockets einbauen, und für die Übersetzungen aufjedenfall Websockets.
+
+Kriterium 	      	SSE 	            WebSockets
+Richtung 	      	Server → Client 	Bidirektional
+Komplexität  	      Gering 	      Mittel
+im Code
+Reconnect bei  	      Automatisch      	Manuell / socket.io übernimmt
+Verbindungs-
+abbruch
+Geeignet für euer  	✅     	   	✅
+Projekt
+Warum? 	  	  	Für die Forumbei-    Für die Übersetzungen brauche ich
+                        träge, da SSE für    Websockets, da ich eine bidirektio-
+                        diese ausreichend    nale Kommunikation brauche
+                        ist, aber auch Web-
+                        sockets gut passen
+                        würden.
+
+## Was passiert in eurer aktuellen Implementierung, wenn der Server neu startet – verlieren verbundene Clients ihre Verbindung, und wie verhält sich die App dann?
+Kommt drauf an, was der User gerade macht. Aber sowohl die EventSource API als auch die Socket.io library haben eine eingebundene automatische reconnect Funktion.
+Wenn der User einen Sermon Stream benutzt, während der Server neustartet, dann wird er für die Sekunden in denen der Server neustartet, die Verbindung verlieren, danach wird es aber automatisch wiederhergestellt.
+Wenn er genau dann einen Forum Post macht, wo der Server offline ist. Sollte der Post zwar in der Datenbank gespeichert werden, der Server schickt allerdings nie die "Push Benachrichtigung" raus, dass es einen neuen Beitrag gibt. Er müsste die Seite reloaden.
+
+## Welche Teile meiner App würden langfristig von Echtzeit-Kommunikation profitieren, welche nicht? Wo wäre Polling (z.B. alle 5 Sekunden ein GET) die ehrlichere Lösung? Begründe anhand meines konkreten Codes.
+Die Live Speech Translation sollte aufjedenfall eine websocket implementierung haben, da es sich um bidirektionale Kommunikation handelt.
+Das Auflisten von Sessions oder Foren sollte von SSE Stack zu Polling wechseln, da hier der Kostengrund überwiegt.
+Die Thread Comments sollten ebenfalls von SSE auf Polling umswitchen, da Diskussionen Kommentare asynchron passieren, und polling skaliert besser mit stateless Servern.
+Diese Changes setzte ich um.
