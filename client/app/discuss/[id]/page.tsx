@@ -1,17 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { authFetch, getCachedUser, setCachedUser } from '../../utils/auth'
 import { User, ForumPost } from '../../types'
 import { useSSE } from '../../utils/useSSE'
+
+// Comment interface matching the API response shape from Prisma
+// (ForumComment with author relation included)
 interface Comment {
-  id: string
-  authorName: string
+  id: number
   content: string
-  createdAt: string
-  parentId: string | null
+  authorId: number
+  author: { id: number; name: string; email: string; role: string }
+  postId: number
+  parentId: number | null
   repliedToName?: string | null
+  createdAt: string
 }
 
 function formatDate(dateStr: string) {
@@ -65,28 +70,28 @@ export default function ForumDetailPage() {
   const params = useParams()
   const id = params.id as string
 
-  const [user, setUser] = useState<User | null>(() => getCachedUser())
+  const [user, setUser] = useState<User | null>(null)
   const [post, setPost] = useState<ForumPost | null>(null)
-  const [loading, setLoading] = useState(() => !getCachedUser())
+  const [loading, setLoading] = useState(true)
   const [comments, setComments] = useState<Comment[]>([])
   const [inputValue, setInputValue] = useState('')
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null)
-  const [collapsedIds, setCollapsedIds] = useState<string[]>([])
+  const [collapsedIds, setCollapsedIds] = useState<number[]>([])
 
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const toggleCollapse = (commentId: string, e: React.MouseEvent) => {
+  const toggleCollapse = (commentId: number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (getRepliesCount(commentId) === 0) return
     setCollapsedIds(prev =>
-      prev.includes(commentId) ? prev.filter(id => id !== commentId) : [...prev, commentId]
+      prev.includes(commentId) ? prev.filter(cid => cid !== commentId) : [...prev, commentId]
     )
   }
 
-  const getRepliesCount = (commentId: string): number => {
+  const getRepliesCount = (commentId: number): number => {
     let count = 0
-    const countReplies = (id: string) => {
-      const children = comments.filter(c => c.parentId === id)
+    const countReplies = (cid: number) => {
+      const children = comments.filter(c => c.parentId === cid)
       count += children.length
       children.forEach(child => countReplies(child.id))
     }
@@ -94,16 +99,34 @@ export default function ForumDetailPage() {
     return count
   }
 
+  // Fetch comments from backend
+  const refreshComments = useCallback(async () => {
+    try {
+      const res = await authFetch(`/api/forums/${id}/comments`)
+      if (res.ok) {
+        setComments(await res.json())
+      }
+    } catch (e) {
+      console.error('Failed to refresh comments', e)
+    }
+  }, [id])
+
   useEffect(() => {
     const init = async () => {
       try {
+        // Use cached user for faster initial render
+        const cached = getCachedUser()
+        if (cached) {
+          setUser(cached)
+        }
+
         const authRes = await authFetch('/api/auth/me')
         if (!authRes.ok) throw new Error('Not authorized')
         const authData = await authRes.json()
         setUser(authData.user)
         setCachedUser(authData.user)
 
-        // Try to fetch post from backend, fallback to matching mock post
+        // Fetch post from backend
         const forumRes = await authFetch('/api/forums')
         let foundPost: ForumPost | null = null
 
@@ -113,7 +136,7 @@ export default function ForumDetailPage() {
           if (matched) foundPost = matched
         }
 
-        // If not found in backend API, use fallback mock post matching the overview and screenshot
+        // If not found in backend API, use fallback mock post
         if (!foundPost) {
           foundPost = {
             id: parseInt(id) || 1,
@@ -129,13 +152,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
         setPost(foundPost)
 
         // Load comments from backend via API
-        const commentsRes = await authFetch(`/api/forums/${id}/comments`);
-        if (commentsRes.ok) {
-          const fetchedComments = await commentsRes.json();
-          setComments(fetchedComments);
-        } else {
-          setComments([]);
-        }
+        await refreshComments()
       } catch (err) {
         console.error(err)
         router.push('/login')
@@ -144,17 +161,14 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
       }
     }
     if (id) init()
-  }, [id, router])
+  }, [id, router, refreshComments])
 
-  // Refresh comments from the backend
-  const refreshComments = async () => {
-    const res = await authFetch(`/api/forums/${id}/comments`)
-    if (res.ok) {
-      setComments(await res.json())
-    } else {
-      setComments([])
+  // SSE listener for real-time comment updates from other users
+  useSSE('commentsUpdated', useCallback((data: any) => {
+    if (data.forumId === parseInt(id)) {
+      refreshComments()
     }
-  }
+  }, [id, refreshComments]))
 
   const handleSend = async () => {
     if (!inputValue.trim() || !user) return
@@ -162,11 +176,14 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
     const payload = {
       content: inputValue,
       parentId: replyingTo ? replyingTo.id : null,
-      repliedToName: replyingTo ? replyingTo.authorName : null
+      repliedToName: replyingTo ? replyingTo.author.name : null
     }
     try {
       const res = await authFetch(`/api/forums/${id}/comments`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload)
       })
       if (res.ok) {
@@ -189,24 +206,6 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
     }, 50)
   }
 
-  // SSE listener for real‑time comment updates
-  useSSE((event) => {
-    if (event.type === 'commentsUpdated') {
-      try {
-        const data = JSON.parse(event.data);
-        // If the event is for this forum, refetch comments
-        if (data.forumId === parseInt(id)) {
-          authFetch(`/api/forums/${id}/comments`)
-            .then(r => r.ok ? r.json() : [])
-            .then(setComments)
-            .catch(console.error);
-        }
-      } catch (e) {
-        console.error('SSE comment parse error', e);
-      }
-    }
-  });
-
   interface FlatComment extends Comment {
     depth: number
     isCollapsed: boolean
@@ -216,7 +215,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
   // Flatten comments tree logic:
   // DFS to flatten comments list, keeping replies immediately below parent
   const buildFlatThread = (commentsList: Comment[]): FlatComment[] => {
-    const map = new Map<string | null, Comment[]>()
+    const map = new Map<number | null, Comment[]>()
     commentsList.forEach(c => {
       const pId = c.parentId
       if (!map.has(pId)) map.set(pId, [])
@@ -225,7 +224,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
 
     const result: FlatComment[] = []
 
-    const traverse = (parentId: string | null, depth: number, parentCollapsed: boolean) => {
+    const traverse = (parentId: number | null, depth: number, parentCollapsed: boolean) => {
       const children = map.get(parentId) || []
       children.forEach(child => {
         const isCollapsed = collapsedIds.includes(child.id)
@@ -269,7 +268,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
       </div>
 
       <div className="mx-auto w-full max-w-4xl pt-10 flex-1 flex flex-col pb-28">
-        
+
         {/* Header / Navigation Bar */}
         <div className="flex items-center justify-between mb-4 z-10">
           <button
@@ -306,6 +305,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
             const hasDepth = comment.depth > 0
             const hasReplies = getRepliesCount(comment.id) > 0
             const showDivider = idx < visibleComments.length - 1 && visibleComments[idx + 1].depth === 0
+            const authorName = comment.author?.name || 'Unknown'
 
             return (
               <div key={comment.id} className="flex flex-col">
@@ -319,12 +319,12 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                   }}
                   style={{ marginLeft: hasDepth ? `${Math.min(comment.depth * 2.5, 8)}rem` : '0px' }}
                   className="group flex flex-col cursor-pointer transition-all duration-150 rounded-lg p-2.5 -mx-2.5 hover:bg-[#288C49]/5 active:bg-[#288C49]/10 pb-2 my-1"
-                  title={comment.isCollapsed ? "Click to expand thread" : `Click to reply to ${comment.authorName}`}
+                  title={comment.isCollapsed ? "Click to expand thread" : `Click to reply to ${authorName}`}
                 >
                   <div className="flex items-stretch">
                     {/* Straight vertical line for replies */}
                     {hasDepth && (
-                      <div 
+                      <div
                         onClick={(e) => hasReplies && toggleCollapse(comment.id, e)}
                         title={hasReplies ? "Click to collapse thread" : undefined}
                         className={`w-4 mr-3 flex justify-center items-stretch ${hasReplies ? 'cursor-pointer' : ''} select-none flex-shrink-0 relative group/line`}
@@ -348,7 +348,7 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
                             </button>
                           )}
 
-                              <span className="text-[#288C49]">{comment.authorName}</span>
+                          <span className="text-[#288C49]">{authorName}</span>
                           {comment.repliedToName && (
                             <span className="text-[#4c6e4e] font-normal text-xs ml-2 select-none">
                               -replied to <span className="font-medium text-[#288C49]">"{comment.repliedToName}"</span>
@@ -395,9 +395,9 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
           {replyingTo && (
             <div className="flex items-center justify-between bg-[#288c49]/10 text-[#0c3b28] text-xs font-semibold px-4 py-2 rounded-t-xl border-x border-t border-[#288C49]/30 transition-all duration-150">
               <span className="flex items-center gap-1">
-                Replying to <strong className="text-[#288C49]">{replyingTo.authorName}</strong>
+                Replying to <strong className="text-[#288C49]">{replyingTo.author?.name}</strong>
               </span>
-              <button 
+              <button
                 onClick={() => setReplyingTo(null)}
                 className="text-[#9b2c2c] hover:text-[#e53e3e] font-bold text-xs p-1"
               >
@@ -407,9 +407,8 @@ Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Dolor Lorem Ipsum et Do
           )}
 
           {/* Bottom TextInput Control */}
-          <div className={`relative flex items-center border border-[#288C49] bg-white/95 shadow-sm backdrop-blur-sm transition-all focus-within:ring-2 focus-within:ring-[#288C49]/20 focus-within:border-[#1a6632] ${
-            replyingTo ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'
-          }`}>
+          <div className={`relative flex items-center border border-[#288C49] bg-white/95 shadow-sm backdrop-blur-sm transition-all focus-within:ring-2 focus-within:ring-[#288C49]/20 focus-within:border-[#1a6632] ${replyingTo ? 'rounded-b-xl rounded-t-none' : 'rounded-xl'
+            }`}>
             <input
               ref={inputRef}
               type="text"

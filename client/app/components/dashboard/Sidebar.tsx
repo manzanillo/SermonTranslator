@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { User } from '../../types'
 import { authFetch } from '../../utils/auth'
 import { cn } from '../../lib/utils'
@@ -62,6 +62,7 @@ function getInitials(name: string) {
 export default function Sidebar({ user }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const navItems = getNavItems(user.role)
 
   const handleLogout = async () => {
@@ -123,8 +124,7 @@ export default function Sidebar({ user }: SidebarProps) {
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive =
-              typeof window !== 'undefined' && window.location.pathname === item.href
+            const isActive = pathname === item.href
             return (
               <button
                 key={item.href}
