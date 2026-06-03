@@ -670,8 +670,8 @@ app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
     // Send push notifications to participants
     if (session.participants && session.participants.length > 0) {
       const payload = JSON.stringify({
-        title: 'Session Ended',
-        body: `The session "${session.title}" has ended.`,
+        title: 'Sermon Ended',
+        body: `The sermon you were listening to has ended.`,
         url: '/listener'
       });
 

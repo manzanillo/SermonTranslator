@@ -115,3 +115,21 @@ Session endet     Ja                            Transactional     Web         Us
 Die Sinnhaftigkeit der Notification würde im Laufe der Entwicklung variieren, vorallem wenn mehr Features hinzukommen würden.
 
 Für das Ende einer Session, ist bereits eine Push-Benachrichtigung eingesetzt. Für das Ändern vom Passwort sollte man noch eine transactional E-Mail rausschicken.
+
+## Template kritisch prüfen
+
+✅ Enthält das Template alle Infos, die der Nutzer braucht – ohne sich einloggen zu müssen?
+
+      Es gibt keine Benachrichtigung, die der Nutzer sehen muss, wenn er nicht eingeloggt ist.
+
+✅ Gibt es einen direkten Deep Link zur betroffenen Ansicht (nicht nur zur Startseite)?
+
+      Ja von der Passwort-Reset Mail zur Passwort-Change Page
+
+✅ Ist Betreff / Notification-Titel klar, was das Event war – in unter 50 Zeichen?
+
+      Ja, relativ knapp gehalten immer.
+
+✅ Ist der Notification-Body unter 120 Zeichen?
+
+      Ja, auch.
