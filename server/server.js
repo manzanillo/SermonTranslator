@@ -10,8 +10,13 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
+const { Resend } = require('resend');
+const React = require('react');
+const { render } = require('@react-email/render');
+const { Html, Body, Container, Text, Heading, Button } = require('@react-email/components');
 
 const app = express();
+const resend = new Resend(process.env.RESEND_API_KEY);
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
@@ -340,16 +345,51 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/auth/change-password
-app.post('/api/auth/change-password', authenticate, async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-
-  if (!oldPassword || !newPassword) {
-    return res.status(400).json({ error: 'Old password and new password are required' });
-  }
-
+// ============================================================================
+// PASSWORD RESET HELPER
+// ============================================================================
+const sendPasswordResetEmail = async (email, resetUrl) => {
   try {
-    // Find user in database
+    const emailHtml = await render(
+      React.createElement(Html, null,
+        React.createElement(Body, { style: { backgroundColor: '#F4F8F5', fontFamily: 'sans-serif' } },
+          React.createElement(Container, { style: { padding: '40px 20px', textAlign: 'center' } },
+            React.createElement(Heading, { style: { color: '#0C3B28', fontSize: '24px' } }, "Password Reset Request"),
+            React.createElement(Text, { style: { color: '#4C6E4E', fontSize: '16px', marginBottom: '24px' } }, 
+              "You recently requested to change your password for your Sermon Translator account. Click the button below to proceed."
+            ),
+            React.createElement(Button, { 
+              href: resetUrl, 
+              style: { backgroundColor: '#288C49', color: 'white', padding: '12px 24px', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold' } 
+            }, "Change Password"),
+            React.createElement(Text, { style: { color: '#4C6E4E', fontSize: '14px', marginTop: '24px' } }, 
+              "If you did not request a password change, please ignore this email."
+            )
+          )
+        )
+      )
+    );
+
+    console.log('\n======================================================');
+    console.log(`[TESTING MODE] Password Reset Link for ${email}:`);
+    console.log(resetUrl);
+    console.log('======================================================\n');
+
+    await resend.emails.send({
+      from: 'Sermon Translator <onboarding@resend.dev>', // Use onboarding@resend.dev for testing unless domain is verified
+      to: email,
+      subject: 'Change Your Password',
+      html: emailHtml
+    });
+    console.log(`Password reset email sent to ${email}`);
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+  }
+};
+
+// POST /api/auth/request-password-change
+app.post('/api/auth/request-password-change', authenticate, async (req, res) => {
+  try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId }
     });
@@ -358,10 +398,51 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Verify old password matches
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Incorrect old password' });
+    // Generate token valid for 15 minutes, using current password hash as part of the secret
+    const secret = process.env.JWT_SECRET + user.password;
+    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '15m' });
+
+    const resetUrl = `http://localhost:5173/settings?token=${token}`;
+
+    // Send email without blocking the response
+    sendPasswordResetEmail(user.email, resetUrl);
+
+    res.status(200).json({ message: 'Password reset email sent' });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    res.status(500).json({ error: 'Failed to request password change' });
+  }
+});
+
+// POST /api/auth/reset-password-with-token
+app.post('/api/auth/reset-password-with-token', async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token and new password are required' });
+  }
+
+  try {
+    // Decode token without verification to get userId
+    const decoded = jwt.decode(token);
+    if (!decoded || !decoded.userId) {
+      return res.status(400).json({ error: 'Invalid token' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify token
+    const secret = process.env.JWT_SECRET + user.password;
+    try {
+      jwt.verify(token, secret);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
     // Validate new password strength
@@ -377,14 +458,14 @@ app.post('/api/auth/change-password', authenticate, async (req, res) => {
 
     // Update in database
     await prisma.user.update({
-      where: { id: req.user.userId },
+      where: { id: user.id },
       data: { password: hashedPassword }
     });
 
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('Password change error:', error);
-    res.status(500).json({ error: 'Failed to update password' });
+    console.error('Password reset error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 
