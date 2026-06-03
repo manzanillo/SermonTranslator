@@ -37,7 +37,7 @@ export default function AppShell({ user, children }: AppShellProps) {
 
             const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
             let subscription = await registration.pushManager.getSubscription();
-            
+
             if (!subscription) {
               subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
@@ -45,11 +45,16 @@ export default function AppShell({ user, children }: AppShellProps) {
               });
             }
 
-            await authFetch('/api/push/subscribe', {
+            const subPayload = (subscription as any).toJSON ? (subscription as any).toJSON() : subscription;
+            console.log('Push subscription payload:', subPayload);
+            const resp = await authFetch('/api/push/subscribe', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(subscription)
+              body: JSON.stringify(subPayload)
             });
+            if (!resp.ok) {
+              console.error('Failed to save subscription', await resp.text());
+            }
           }
         } catch (error) {
           console.error('Error during push subscription:', error);

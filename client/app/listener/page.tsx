@@ -11,6 +11,8 @@ export default function ListenerPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [showEndedToast, setShowEndedToast] = useState(false)
+  const [toastTitle, setToastTitle] = useState<string | null>(null)
+  const [toastBody, setToastBody] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
 
@@ -53,16 +55,20 @@ export default function ListenerPage() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Check URL query parameters for session ended signal
+  // Listen for push payloads from the service worker and show an in-app toast
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      if (params.get('ended') === 'true') {
-        setShowEndedToast(true)
-        // Clean URL immediately
-        const newUrl = window.location.pathname
-        window.history.replaceState({}, '', newUrl)
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      const handler = (event: MessageEvent) => {
+        const data = event.data
+        if (data && data.type === 'push' && data.payload) {
+          setToastTitle(data.payload.title || null)
+          setToastBody(data.payload.body || null)
+          setShowEndedToast(true)
+        }
       }
+
+      navigator.serviceWorker.addEventListener('message', handler)
+      return () => navigator.serviceWorker.removeEventListener('message', handler)
     }
   }, [])
 
@@ -105,9 +111,9 @@ export default function ListenerPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="font-serif text-xl font-bold text-[#0c3b28]">Sermon Ended</h3>
+                <h3 className="font-serif text-xl font-bold text-[#0c3b28]">{toastTitle ?? 'Session Ended'}</h3>
                 <p className="mt-2 text-sm text-[#4c6e4e] leading-relaxed">
-                  The imam has ended the current live sermon session.
+                  {toastBody ?? 'The imam has ended the current live session.'}
                 </p>
                 <button
                   onClick={() => setShowEndedToast(false)}
@@ -127,7 +133,7 @@ export default function ListenerPage() {
                   </svg>
                 </div>
                 <span className="font-serif font-medium text-sm tracking-wide text-emerald-50">
-                  The sermon ended
+                  {toastBody ?? 'The sermon ended'}
                 </span>
               </div>
               <button

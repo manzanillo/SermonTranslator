@@ -14,6 +14,24 @@ self.addEventListener('push', function(event) {
   }
 });
 
+// Also broadcast payload to open clients so in-app UI can reflect updated content
+self.addEventListener('push', function(event) {
+  if (event.data) {
+    const data = event.data.json();
+    event.waitUntil(
+      clients.matchAll({ includeUncontrolled: true, type: 'window' }).then(function(clientList) {
+        for (const client of clientList) {
+          try {
+            client.postMessage({ type: 'push', payload: data });
+          } catch (e) {
+            // ignore
+          }
+        }
+      })
+    );
+  }
+});
+
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   const urlToOpen = event.notification.data.url;

@@ -1036,36 +1036,19 @@ app.post('/api/forums/:id/comments', authenticate, async (req, res) => {
 });
 
 // ============================================================================
-// ERROR HANDLING & GRACEFUL SHUTDOWN
+// ERROR HANDLING
 // ============================================================================
 
-// Error handling for undefined routes
-app.use((req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.path,
-    method: req.method
-  });
-});
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+// (Note: 404 handler moved to the end of the file after all route definitions)
 
 // ============================================================================
 // PUSH NOTIFICATIONS ROUTES
 // ============================================================================
 app.post('/api/push/subscribe', authenticate, async (req, res) => {
   const subscription = req.body;
+
+  console.log('Received push subscription request from user', req.user?.userId);
+  console.log('Subscription payload (raw):', JSON.stringify(subscription));
 
   if (!subscription || !subscription.endpoint || !subscription.keys) {
     return res.status(400).json({ error: 'Invalid subscription object' });
@@ -1096,8 +1079,9 @@ app.post('/api/push/subscribe', authenticate, async (req, res) => {
 
     res.status(201).json({ message: 'Subscription saved successfully' });
   } catch (error) {
-    console.error('Failed to save push subscription:', error);
-    res.status(500).json({ error: 'Failed to save subscription' });
+    console.error('Failed to save push subscription:', error && error.stack ? error.stack : error);
+    // include minimal hint for the client during debugging
+    res.status(500).json({ error: 'Failed to save subscription', details: (error && error.message) ? error.message : null });
   }
 });
 
@@ -1128,4 +1112,26 @@ Available endpoints:
   PUT    /api/translations/:id      - Update translation
   DELETE /api/translations/:id      - Delete translation
   `);
+});
+
+// Error handling for undefined routes (placed after all routes)
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully');
+  await prisma.$disconnect();
+  process.exit(0);
 });
