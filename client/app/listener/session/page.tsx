@@ -29,6 +29,8 @@ export default function ListenerSessionPage() {
           const active = sessions.find((s: Session) => s.isActive)
           if (active) {
             setSession(active)
+            // Join session to receive push notifications on end
+            await authFetch(`/api/sessions/${active.id}/join`, { method: 'POST' })
           } else {
             setSession(null)
           }

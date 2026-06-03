@@ -14,6 +14,7 @@ const { Resend } = require('resend');
 const React = require('react');
 const { render } = require('@react-email/render');
 const { Html, Body, Container, Text, Heading, Button } = require('@react-email/components');
+const webpush = require('web-push');
 
 const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -24,6 +25,13 @@ const io = socketIo(server, {
     methods: ["GET", "POST"]
   }
 });
+
+// Configure web-push
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 // Initialize Prisma client
 const prisma = new PrismaClient();
@@ -599,6 +607,26 @@ app.get('/api/sessions', authenticate, async (req, res) => {
   }
 });
 
+// POST /api/sessions/:id/join - Join a session (records participation)
+app.post('/api/sessions/:id/join', authenticate, async (req, res) => {
+  const sessionId = parseInt(req.params.id, 10);
+  if (Number.isNaN(sessionId)) return res.status(400).json({ error: 'Invalid session ID' });
+
+  try {
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    await prisma.session.update({
+      where: { id: sessionId },
+      data: { participants: { connect: { id: req.user.userId } } }
+    });
+
+    res.status(200).json({ message: 'Joined session' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to join session' });
+  }
+});
+
 // POST /api/sessions/:id/end - End a session
 app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
   const sessionId = parseInt(req.params.id, 10);
@@ -610,7 +638,12 @@ app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
   try {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { translations: true }
+      include: { 
+        translations: true,
+        participants: {
+          include: { pushSubscriptions: true }
+        }
+      }
     });
 
     if (!session) {
@@ -633,6 +666,37 @@ app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
     io.emit('sessionStatus', { active: false });
     io.emit('sessionEnded');
     sessionActive = false;
+
+    // Send push notifications to participants
+    if (session.participants && session.participants.length > 0) {
+      const payload = JSON.stringify({
+        title: 'Session Ended',
+        body: `The session "${session.title}" has ended.`,
+        url: '/listener'
+      });
+
+      const pushPromises = [];
+      for (const participant of session.participants) {
+        for (const sub of participant.pushSubscriptions) {
+          const pushSubscription = {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth }
+          };
+          
+          pushPromises.push(
+            webpush.sendNotification(pushSubscription, payload).catch(async (err) => {
+              if (err.statusCode === 410 || err.statusCode === 404) {
+                console.log('Push subscription expired. Deleting from DB.');
+                await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } });
+              } else {
+                console.error('Error sending push notification:', err);
+              }
+            })
+          );
+        }
+      }
+      await Promise.all(pushPromises);
+    }
 
     res.status(200).json({ message: 'Session ended successfully' });
   } catch (error) {
@@ -998,11 +1062,51 @@ process.on('SIGINT', async () => {
 });
 
 // ============================================================================
+// PUSH NOTIFICATIONS ROUTES
+// ============================================================================
+app.post('/api/push/subscribe', authenticate, async (req, res) => {
+  const subscription = req.body;
+
+  if (!subscription || !subscription.endpoint || !subscription.keys) {
+    return res.status(400).json({ error: 'Invalid subscription object' });
+  }
+
+  try {
+    const existing = await prisma.pushSubscription.findUnique({
+      where: { endpoint: subscription.endpoint }
+    });
+
+    if (existing) {
+      if (existing.userId !== req.user.userId) {
+        await prisma.pushSubscription.update({
+          where: { endpoint: subscription.endpoint },
+          data: { userId: req.user.userId, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth }
+        });
+      }
+    } else {
+      await prisma.pushSubscription.create({
+        data: {
+          userId: req.user.userId,
+          endpoint: subscription.endpoint,
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth
+        }
+      });
+    }
+
+    res.status(201).json({ message: 'Subscription saved successfully' });
+  } catch (error) {
+    console.error('Failed to save push subscription:', error);
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
+});
+
+// ============================================================================
 // START SERVER
 // ============================================================================
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`\nServer running on port ${PORT}`);
   console.log(`
 ✓ Socket.IO server ready
 ✓ Express API ready

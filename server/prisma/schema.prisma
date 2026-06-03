@@ -16,6 +16,7 @@ model User {
   participatedSessions Session[] @relation("SessionParticipants")
   forumPosts           ForumPost[]
   forumComments        ForumComment[]
+  pushSubscriptions    PushSubscription[]
   @@map("users")
 }
 model Session {
@@ -65,4 +66,15 @@ model ForumComment {
   repliedToName String?        
   createdAt     DateTime       @default(now())
   @@map("forum_comments")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  @@map("push_subscriptions")
 }
