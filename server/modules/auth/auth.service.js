@@ -103,8 +103,6 @@ const loginUser = async (data, userId) => {
 };
 
 const logoutUser = async (data, userId) => {
-  // Logout is stateless in this implementation. The route clears the cookie.
-  // This helper exists for symmetry and future server-side logout work.
   return {
     message: 'Logout successful'
   };
