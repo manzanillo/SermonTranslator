@@ -155,3 +155,15 @@ api/push/subscribe      Für die Web-Pushbenachrichtigungen        -
 - translation ownership validation
 - forum CRUD
 - push subscription persistence
+
+## Bounded Context
+
+Session Context           Translations Context            User Context             Forum Context
+---------------           --------------------            ------------             -------------
+Session                   Translation                     User                     Forum
+Session entry                                             Session-JWT              Forum entry
+                                                          Password-Reset           Comment
+
+### Welche Contexte kommunizieren miteinander?
+
+Session braucht vom User die User Rollen zur Verifizierung. Translations braucht von Session die Session, die aber einem User zugewiesen ist.
