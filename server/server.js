@@ -15,6 +15,12 @@ const React = require('react');
 const { render } = require('@react-email/render');
 const { Html, Body, Container, Text, Heading, Button } = require('@react-email/components');
 const webpush = require('web-push');
+const { createSession, getSession, joinSession, getAllSession, endSession } = require('./session/session.service');
+const { createUser, getAllUser } = require('./users/users.service');
+const { getAllTranslations, getTranslation, createTranslation, replaceTranslation, deleteTranslation } = require('./translations/translations.service');
+const { getAllForums, createForumPost, createComment, getSpecificComments } = require('./forums/forums.service');
+const { registerUser, loginUser, logoutUser, getCurrentUserInfo, requestPasswordChange, resetPasswordWithToken } = require('./auth/auth.service');
+const { savePushSubscription } = require('./push/push.service');
 
 const app = express();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -199,98 +205,32 @@ app.get('/status', (req, res) => {
 
 // POST /api/auth/register
 app.post('/api/auth/register', registerLimiter, async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  // Validate required fields
-  if (!name || !email || !password || !role) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      required: ['name', 'email', 'password', 'role']
-    });
-  }
-
-  // Validate role
-  if (!['imam', 'listener'].includes(role)) {
-    return res.status(400).json({
-      error: 'Invalid role. Must be "imam" or "listener"'
-    });
-  }
-
-  // Validate password strength
-  if (!validatePassword(password)) {
-    return res.status(400).json({
-      error: 'Password must be at least 8 characters and contain uppercase letter, lowercase letter, number, and special character (@$!%*?&)'
-    });
-  }
+  const requestData = { ...req.body };
+  const userId = req.user?.userId;
 
   try {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        error: 'Email already registered'
-      });
-    }
-
-    // Hash password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        role: role.trim()
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true
-      }
-    });
-
+    const newUser = await registerUser(requestData, userId);
     res.status(201).json({
       message: 'User registered successfully',
       user: newUser
     });
   } catch (error) {
     console.error('Registration error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to register user' });
   }
 });
 
 // POST /api/auth/login
 app.post('/api/auth/login', loginLimiter, async (req, res) => {
-  const { email, password } = req.body;
-
-  // Validate required fields
-  if (!email || !password) {
-    return res.status(400).json({
-      error: 'Email and password are required'
-    });
-  }
+  const requestData = { ...req.body };
+  const userId = req.user?.userId;
 
   try {
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() }
-    });
+    const user = await loginUser(requestData, userId);
 
-    // Check if user exists and password is correct
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({
-        error: 'Invalid email or password'
-      });
-    }
-
-    // Generate JWT token
     const token = jwt.sign(
       {
         userId: user.id,
@@ -319,36 +259,44 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to login' });
   }
 });
 
 // POST /api/auth/logout
-app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  res.status(200).json({ message: 'Logout successful' });
+app.post('/api/auth/logout', async (req, res) => {
+  const requestData = { ...req.body };
+  const userId = req.user?.userId;
+
+  try {
+    const result = await logoutUser(requestData, userId);
+    res.clearCookie('token');
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Logout error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
+    res.status(500).json({ error: 'Failed to logout' });
+  }
 });
 
 // GET /api/auth/me - Get current user info
 app.get('/api/auth/me', authenticate, async (req, res) => {
+  const userId = req.user.userId;
+  const requestData = { ...req.body };
+
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true
-      }
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
+    const user = await getCurrentUserInfo(requestData, userId);
     res.status(200).json({ user });
   } catch (error) {
+    console.error('Fetch current user info error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to get user info' });
   }
 });
@@ -397,82 +345,35 @@ const sendPasswordResetEmail = async (email, resetUrl) => {
 
 // POST /api/auth/request-password-change
 app.post('/api/auth/request-password-change', authenticate, async (req, res) => {
+  const requestData = { ...req.body };
+  const userId = req.user.userId;
+
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.userId }
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Generate token valid for 15 minutes, using current password hash as part of the secret
-    const secret = process.env.JWT_SECRET + user.password;
-    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: '15m' });
-
-    const resetUrl = `http://localhost:5173/settings?token=${token}`;
-
-    // Send email without blocking the response
-    sendPasswordResetEmail(user.email, resetUrl);
-
-    res.status(200).json({ message: 'Password reset email sent' });
+    const result = await requestPasswordChange(requestData, userId);
+    sendPasswordResetEmail(result.email, result.resetUrl);
+    res.status(200).json({ message: result.message });
   } catch (error) {
     console.error('Password reset request error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to request password change' });
   }
 });
 
 // POST /api/auth/reset-password-with-token
 app.post('/api/auth/reset-password-with-token', async (req, res) => {
-  const { token, newPassword } = req.body;
-
-  if (!token || !newPassword) {
-    return res.status(400).json({ error: 'Token and new password are required' });
-  }
+  const requestData = { ...req.body };
+  const userId = null;
 
   try {
-    // Decode token without verification to get userId
-    const decoded = jwt.decode(token);
-    if (!decoded || !decoded.userId) {
-      return res.status(400).json({ error: 'Invalid token' });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Verify token
-    const secret = process.env.JWT_SECRET + user.password;
-    try {
-      jwt.verify(token, secret);
-    } catch (err) {
-      return res.status(401).json({ error: 'Invalid or expired token' });
-    }
-
-    // Validate new password strength
-    if (!validatePassword(newPassword)) {
-      return res.status(400).json({
-        error: 'Password must be at least 8 characters and contain uppercase letter, lowercase letter, number, and special character (@$!%*?&)'
-      });
-    }
-
-    // Hash the new password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-
-    // Update in database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { password: hashedPassword }
-    });
-
-    res.status(200).json({ message: 'Password updated successfully' });
+    const result = await resetPasswordWithToken(requestData, userId);
+    res.status(200).json(result);
   } catch (error) {
     console.error('Password reset error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to reset password' });
   }
 });
@@ -483,46 +384,36 @@ app.post('/api/auth/reset-password-with-token', async (req, res) => {
 
 // POST /api/users - Create a new user
 app.post('/api/users', authenticate, async (req, res) => {
-  const { name, role } = req.body;
-
-  // Validate required fields
-  if (!name || !role) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      required: ['name', 'role']
-    });
-  }
-
-  // Validate role
-  if (!['imam', 'listener'].includes(role)) {
-    return res.status(400).json({
-      error: 'Invalid role. Must be "imam" or "listener"'
-    });
-  }
+  const userId = req.user.userId;
 
   try {
-    const newUser = await prisma.user.create({
-      data: {
-        name: name.trim(),
-        role: role.trim()
-      }
-    });
-
+    const newUser = await createUser(req.body, userId);
     res.status(201).json({
       message: 'User created successfully',
       user: newUser
     });
   } catch (error) {
+    console.error('User creation error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
 
 // GET /api/users - Get all users
 app.get('/api/users', authenticate, async (req, res) => {
+  const userId = req.user.userId;
+  const requestData = { ...req.body };
+
   try {
-    const users = await prisma.user.findMany();
+    const users = await getAllUser(requestData, userId);
     res.status(200).json(users);
   } catch (error) {
+    console.error('Fetch users error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -533,55 +424,21 @@ app.get('/api/users', authenticate, async (req, res) => {
 
 // POST /api/sessions - Create a new session
 app.post('/api/sessions', authenticate, async (req, res) => {
-  const { title, description } = req.body;
   const userId = req.user.userId;
 
-  // Validate required fields
-  if (!title || !description) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      required: ['title', 'description']
-    });
-  }
-
   try {
-    // Verify user exists and is an imam
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        error: 'User does not exist'
-      });
-    }
-
-    if (user.role !== 'imam') {
-      return res.status(403).json({
-        error: 'Only imams can create sessions'
-      });
-    }
-
-    const newSession = await prisma.session.create({
-      data: {
-        imamId: userId,
-        title: title.trim(),
-        description: description.trim()
-      },
-      include: {
-        imam: true,
-        participants: true,
-        translations: true
-      }
-    });
-
-
+    const newSession = await createSession(req.body, userId);
     res.status(201).json({
       message: 'Session created successfully',
       session: newSession
     });
   } catch (error) {
     console.error('Session creation error:', error);
+
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
+
     res.status(500).json({ error: 'Failed to create session' });
   }
 });
@@ -590,143 +447,70 @@ app.post('/api/sessions', authenticate, async (req, res) => {
 
 // GET /api/sessions - Get all sessions
 app.get('/api/sessions', authenticate, async (req, res) => {
+  const userId = req.user.userId;
+  const sessionData = { ...req.body };
+
   try {
-    const sessions = await prisma.session.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      },
-      include: {
-        imam: true,
-        participants: true,
-        translations: true
-      }
-    });
+    const sessions = await getAllSession(sessionData, userId);
     res.status(200).json(sessions);
   } catch (error) {
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch sessions' });
   }
 });
 
 // POST /api/sessions/:id/join - Join a session (records participation)
 app.post('/api/sessions/:id/join', authenticate, async (req, res) => {
-  const sessionId = parseInt(req.params.id, 10);
-  if (Number.isNaN(sessionId)) return res.status(400).json({ error: 'Invalid session ID' });
+  const userId = req.user.userId;
+  const sessionData = { ...req.body, id: req.params.id };
 
   try {
-    const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session) return res.status(404).json({ error: 'Session not found' });
-
-    await prisma.session.update({
-      where: { id: sessionId },
-      data: { participants: { connect: { id: req.user.userId } } }
-    });
-
-    res.status(200).json({ message: 'Joined session' });
+    const result = await joinSession(sessionData, userId);
+    res.status(200).json(result);
   } catch (error) {
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to join session' });
   }
 });
 
 // POST /api/sessions/:id/end - End a session
 app.post('/api/sessions/:id/end', authenticate, async (req, res) => {
-  const sessionId = parseInt(req.params.id, 10);
-
-  if (Number.isNaN(sessionId)) {
-    return res.status(400).json({ error: 'Invalid session ID' });
-  }
+  const userId = req.user.userId;
+  const sessionData = { ...req.body, id: req.params.id };
 
   try {
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
-      include: { 
-        translations: true,
-        participants: {
-          include: { pushSubscriptions: true }
-        }
-      }
-    });
-
-    if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
-    }
-
-    if (session.imamId !== req.user.userId) {
-      return res.status(403).json({ error: 'Only the session imam can end this session' });
-    }
-
-    if (session.translations.length === 0) {
-      await prisma.session.delete({ where: { id: sessionId } });
-    } else {
-      await prisma.session.update({
-        where: { id: sessionId },
-        data: { isActive: false }
-      });
-    }
+    const result = await endSession(sessionData, userId);
 
     io.emit('sessionStatus', { active: false });
     io.emit('sessionEnded');
     sessionActive = false;
 
-    // Send push notifications to participants
-    if (session.participants && session.participants.length > 0) {
-      const payload = JSON.stringify({
-        title: 'Sermon Ended',
-        body: `The sermon you were listening to has ended.`,
-        url: '/listener'
-      });
-
-      const pushPromises = [];
-      for (const participant of session.participants) {
-        for (const sub of participant.pushSubscriptions) {
-          const pushSubscription = {
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh, auth: sub.auth }
-          };
-          
-          pushPromises.push(
-            webpush.sendNotification(pushSubscription, payload).catch(async (err) => {
-              if (err.statusCode === 410 || err.statusCode === 404) {
-                console.log('Push subscription expired. Deleting from DB.');
-                await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } });
-              } else {
-                console.error('Error sending push notification:', err);
-              }
-            })
-          );
-        }
-      }
-      await Promise.all(pushPromises);
-    }
-
-    res.status(200).json({ message: 'Session ended successfully' });
+    res.status(200).json(result);
   } catch (error) {
     console.error('Failed to end session via API:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to end session' });
   }
 });
 
 // GET /api/sessions/:id - Get session by ID
 app.get('/api/sessions/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
+  const userId = req.user.userId;
+  const sessionData = { ...req.body, id: req.params.id };
+
   try {
-    const session = await prisma.session.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        imam: true,
-        participants: true,
-        translations: true
-      }
-    });
-
-    if (!session) {
-      return res.status(404).json({
-        error: 'Session not found',
-        id: parseInt(id)
-      });
-    }
-
+    const session = await getSession(sessionData, userId);
     res.status(200).json(session);
   } catch (error) {
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch session' });
   }
 });
@@ -737,163 +521,73 @@ app.get('/api/sessions/:id', authenticate, async (req, res) => {
 
 // GET /api/translations - Returns all translations
 app.get('/api/translations', authenticate, async (req, res) => {
+  const userId = req.user.userId;
+  const requestData = { ...req.body };
+
   try {
-    const translations = await prisma.translation.findMany({
-      include: {
-        session: true
-      }
-    });
+    const translations = await getAllTranslations(requestData, userId);
     res.status(200).json(translations);
   } catch (error) {
+    console.error('Fetch translations error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch translations' });
   }
 });
 
 // GET /api/translations/:id - Returns a translation by ID
 app.get('/api/translations/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
+  const userId = req.user.userId;
+  const requestData = { ...req.body, id: req.params.id };
+
   try {
-    const translation = await prisma.translation.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        session: true
-      }
-    });
-
-    if (!translation) {
-      return res.status(404).json({
-        error: 'Translation not found',
-        id: parseInt(id)
-      });
-    }
-
+    const translation = await getTranslation(requestData, userId);
     res.status(200).json(translation);
   } catch (error) {
+    console.error('Fetch translation by id error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch translation' });
   }
 });
 
 // POST /api/translations - Creates a new translation
 app.post('/api/translations', authenticate, async (req, res) => {
-  const { sessionId, originalText, translatedText, language } = req.body;
-
-  // Validate required fields
-  const missingFields = [];
-  if (!sessionId) missingFields.push('sessionId');
-  if (!originalText) missingFields.push('originalText');
-  if (!translatedText) missingFields.push('translatedText');
-  if (!language) missingFields.push('language');
-
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      missingFields
-    });
-  }
+  const userId = req.user.userId;
+  const requestData = { ...req.body };
 
   try {
-    // Verify session exists and user has access
-    const session = await prisma.session.findUnique({
-      where: { id: parseInt(sessionId) }
-    });
-
-    if (!session) {
-      return res.status(400).json({
-        error: 'Invalid sessionId - session does not exist'
-      });
-    }
-
-    // Check if user is the imam of this session
-    if (session.imamId !== req.user.userId) {
-      return res.status(403).json({
-        error: 'Access denied - you can only add translations to your own sessions'
-      });
-    }
-
-    // Create new translation
-    const newTranslation = await prisma.translation.create({
-      data: {
-        sessionId: parseInt(sessionId),
-        originalText: originalText.trim(),
-        translatedText: translatedText.trim(),
-        language: language.trim()
-      },
-      include: {
-        session: true
-      }
-    });
-
+    const newTranslation = await createTranslation(requestData, userId);
     res.status(201).json({
       message: 'Translation created successfully',
       translation: newTranslation
     });
   } catch (error) {
+    console.error('Create translation error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to create translation' });
   }
 });
 
 // PUT /api/translations/:id - Completely replaces an existing translation
 app.put('/api/translations/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
-  const { sessionId, originalText, translatedText, language } = req.body;
-
-  // Validate required fields
-  const missingFields = [];
-  if (!sessionId) missingFields.push('sessionId');
-  if (!originalText) missingFields.push('originalText');
-  if (!translatedText) missingFields.push('translatedText');
-  if (!language) missingFields.push('language');
-
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      missingFields
-    });
-  }
+  const userId = req.user.userId;
+  const requestData = { ...req.body, id: req.params.id };
 
   try {
-    // Verify session exists and user has access
-    const session = await prisma.session.findUnique({
-      where: { id: parseInt(sessionId) }
-    });
-
-    if (!session) {
-      return res.status(400).json({
-        error: 'Invalid sessionId - session does not exist'
-      });
-    }
-
-    // Check if user is the imam of this session
-    if (session.imamId !== req.user.userId) {
-      return res.status(403).json({
-        error: 'Access denied - you can only modify translations in your own sessions'
-      });
-    }
-
-    // Update the translation
-    const updatedTranslation = await prisma.translation.update({
-      where: { id: parseInt(id) },
-      data: {
-        sessionId: parseInt(sessionId),
-        originalText: originalText.trim(),
-        translatedText: translatedText.trim(),
-        language: language.trim()
-      },
-      include: {
-        session: true
-      }
-    });
-
+    const updatedTranslation = await replaceTranslation(requestData, userId);
     res.status(200).json({
       message: 'Translation updated successfully',
       translation: updatedTranslation
     });
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({
-        error: 'Translation not found',
-        id: parseInt(id)
-      });
+    console.error('Replace translation error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
     }
     res.status(500).json({ error: 'Failed to update translation' });
   }
@@ -901,40 +595,16 @@ app.put('/api/translations/:id', authenticate, async (req, res) => {
 
 // DELETE /api/translations/:id - Deletes a translation
 app.delete('/api/translations/:id', authenticate, async (req, res) => {
-  const { id } = req.params;
+  const userId = req.user.userId;
+  const requestData = { id: req.params.id };
 
   try {
-    // First, find the translation to check ownership
-    const translation = await prisma.translation.findUnique({
-      where: { id: parseInt(id) },
-      include: { session: true }
-    });
-
-    if (!translation) {
-      return res.status(404).json({
-        error: 'Translation not found',
-        id: parseInt(id)
-      });
-    }
-
-    // Check if user is the imam of the session
-    if (translation.session.imamId !== req.user.userId) {
-      return res.status(403).json({
-        error: 'Access denied - you can only delete translations from your own sessions'
-      });
-    }
-
-    await prisma.translation.delete({
-      where: { id: parseInt(id) }
-    });
-
+    await deleteTranslation(requestData, userId);
     res.status(204).send();
   } catch (error) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({
-        error: 'Translation not found',
-        id: parseInt(id)
-      });
+    console.error('Delete translation error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
     }
     res.status(500).json({ error: 'Failed to delete translation' });
   }
@@ -946,91 +616,74 @@ app.delete('/api/translations/:id', authenticate, async (req, res) => {
 
 // GET /api/forums - Get all forum posts
 app.get('/api/forums', authenticate, async (req, res) => {
+  const userId = req.user.userId;
+  const requestData = { ...req.body };
+
   try {
-    const forums = await prisma.forumPost.findMany({
-      include: { author: true },
-      orderBy: { createdAt: 'desc' }
-    });
+    const forums = await getAllForums(requestData, userId);
     res.status(200).json(forums);
   } catch (error) {
+    console.error('Fetch forums error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch forums' });
   }
 });
 
 // POST /api/forums - Create a new forum post
 app.post('/api/forums', authenticate, async (req, res) => {
-  const { title, content } = req.body;
-
-  if (!title || !content) {
-    return res.status(400).json({ error: 'Missing title or content' });
-  }
+  const userId = req.user.userId;
+  const requestData = { ...req.body };
 
   try {
-    const newPost = await prisma.forumPost.create({
-      data: {
-        title: title.trim(),
-        content: content.trim(),
-        authorId: req.user.userId
-      },
-      include: { author: true }
-    });
-
-
-
+    const newPost = await createForumPost(requestData, userId);
     res.status(201).json({
       message: 'Forum post created successfully',
       post: newPost
     });
   } catch (error) {
     console.error('Forum post creation error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to create forum post' });
   }
 });
 
 // GET /api/forums/:id/comments - Get comments for a specific forum post
 app.get('/api/forums/:id/comments', authenticate, async (req, res) => {
-  const { id } = req.params;
+  const userId = req.user.userId;
+  const requestData = { ...req.body, id: req.params.id };
+
   try {
-    const comments = await prisma.forumComment.findMany({
-      where: { postId: parseInt(id) },
-      include: { author: true },
-      orderBy: { createdAt: 'asc' }
-    });
+    const comments = await getSpecificComments(requestData, userId);
     res.status(200).json(comments);
   } catch (error) {
+    console.error('Fetch specific comments error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to fetch comments' });
   }
 });
 
 // POST /api/forums/:id/comments - Create a new comment
 app.post('/api/forums/:id/comments', authenticate, async (req, res) => {
-  const { id } = req.params;
-  const { content, parentId, repliedToName } = req.body;
-
-  if (!content) {
-    return res.status(400).json({ error: 'Missing comment content' });
-  }
+  const userId = req.user.userId;
+  const requestData = { ...req.body, id: req.params.id };
 
   try {
-    const newComment = await prisma.forumComment.create({
-      data: {
-        content: content.trim(),
-        authorId: req.user.userId,
-        postId: parseInt(id),
-        parentId: parentId || null,
-        repliedToName: repliedToName || null
-      },
-      include: { author: true }
-    });
-
-
-
+    const newComment = await createComment(requestData, userId);
     res.status(201).json({
       message: 'Comment created successfully',
       comment: newComment
     });
   } catch (error) {
     console.error('Comment creation error:', error);
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to create comment' });
   }
 });
@@ -1038,42 +691,17 @@ app.post('/api/forums/:id/comments', authenticate, async (req, res) => {
 // PUSH NOTIFICATIONS ROUTES
 // ============================================================================
 app.post('/api/push/subscribe', authenticate, async (req, res) => {
-  const subscription = req.body;
-
-  console.log('Received push subscription request from user', req.user?.userId);
-  console.log('Subscription payload (raw):', JSON.stringify(subscription));
-
-  if (!subscription || !subscription.endpoint || !subscription.keys) {
-    return res.status(400).json({ error: 'Invalid subscription object' });
-  }
+  const requestData = { ...req.body };
+  const userId = req.user?.userId;
 
   try {
-    const existing = await prisma.pushSubscription.findUnique({
-      where: { endpoint: subscription.endpoint }
-    });
-
-    if (existing) {
-      if (existing.userId !== req.user.userId) {
-        await prisma.pushSubscription.update({
-          where: { endpoint: subscription.endpoint },
-          data: { userId: req.user.userId, p256dh: subscription.keys.p256dh, auth: subscription.keys.auth }
-        });
-      }
-    } else {
-      await prisma.pushSubscription.create({
-        data: {
-          userId: req.user.userId,
-          endpoint: subscription.endpoint,
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth
-        }
-      });
-    }
-
-    res.status(201).json({ message: 'Subscription saved successfully' });
+    const result = await savePushSubscription(requestData, userId);
+    res.status(201).json(result);
   } catch (error) {
     console.error('Failed to save push subscription:', error && error.stack ? error.stack : error);
-    // include minimal hint for the client during debugging
+    if (error.status && error.payload) {
+      return res.status(error.status).json(error.payload);
+    }
     res.status(500).json({ error: 'Failed to save subscription', details: (error && error.message) ? error.message : null });
   }
 });
