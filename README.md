@@ -199,3 +199,7 @@ users.service.js---------------------------
 
 öffentlich: createUser
 intern: getAllUser
+
+### Architektur-Review by Agent
+
+sendPasswordResetEmail() should be put into its own email service. Socket.io is currently emitting side effects out of session.routes.js, this should happen better in a session service or transport helper. Good news: Service layer is isolated from other modules and the most extractable module is push, followed by forums.
