@@ -101,7 +101,7 @@ io.on('connection', (socket) => {
   });
 
   // Handle speech input and translation
-  socket.on('speech', async (data) => {
+  socket.on('speech', (data) => {
     if (!data?.sessionId) {
       return;
     }
@@ -111,31 +111,57 @@ io.on('connection', (socket) => {
       return;
     }
 
-    try {
-      const activeSession = await prisma.session.findUnique({
-        where: { id: sessionId },
-        select: { isActive: true }
-      });
-
-      if (!activeSession || !activeSession.isActive) {
-        return;
-      }
-
-      const german = await translateText(data.text, 'de');
-      const english = await translateText(data.text, 'en');
-      
-      // Save to DB
-      await prisma.translation.create({
-        data: { sessionId, originalText: data.text, translatedText: german, language: 'de' }
-      });
-      await prisma.translation.create({
-        data: { sessionId, originalText: data.text, translatedText: english, language: 'en' }
-      });
-
-      io.emit('translation', { original: data.text, german, english });
-    } catch (err) {
-      console.error('Failed to translate and save speech:', err);
+    const originalText = String(data.text || '').trim();
+    if (!originalText) {
+      return;
     }
+
+    const messageId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Emit the original text immediately so listeners see it right away.
+    io.emit('translation', {
+      id: messageId,
+      original: originalText,
+      german: originalText,
+      english: originalText,
+      isTranslated: false
+    });
+
+    // Translate asynchronously and emit a correction only if translation succeeds.
+    const processTranslation = async () => {
+      try {
+        const [german, english] = await Promise.all([
+          translateText(originalText, 'de'),
+          translateText(originalText, 'en')
+        ]);
+
+        const savePromises = [];
+        const updatePayload = { id: messageId };
+
+        if (german) {
+          updatePayload.german = german;
+          savePromises.push(prisma.translation.create({
+            data: { sessionId, originalText, translatedText: german, language: 'de' }
+          }));
+        }
+
+        if (english) {
+          updatePayload.english = english;
+          savePromises.push(prisma.translation.create({
+            data: { sessionId, originalText, translatedText: english, language: 'en' }
+          }));
+        }
+
+        if (Object.keys(updatePayload).length > 1) {
+          io.emit('translationUpdate', updatePayload);
+          await Promise.all(savePromises);
+        }
+      } catch (err) {
+        console.error('Failed to translate and save speech asynchronously:', err);
+      }
+    };
+
+    void processTranslation();
   });
 
   // Handle session management

@@ -7,7 +7,7 @@ import { authFetch } from '../../utils/auth'
 import { Session } from '../../types'
 
 type Language = 'german' | 'english'
-type TranslationSegment = { german: string; english: string }
+type TranslationSegment = { id: string; german: string; english: string }
 
 export default function ListenerSessionPage() {
   const router = useRouter()
@@ -56,11 +56,16 @@ export default function ListenerSessionPage() {
   useEffect(() => {
     socketRef.current = io('http://localhost:3001')
 
-    socketRef.current.on('translation', (data: { original: string; german: string; english: string }) => {
+    socketRef.current.on('translation', (data: { id?: string; original: string; german: string; english: string }) => {
       setSegments(prev => {
-        const newSegment = { german: data.german.trim(), english: data.english.trim() }
+        const newSegment = {
+          id: data.id ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          german: data.german.trim(),
+          english: data.english.trim()
+        }
+
         if (!newSegment.german && !newSegment.english) return prev
-        
+
         const updated = [...prev, newSegment]
         if (updated.length > 4) {
           return updated.slice(updated.length - 4)
@@ -68,6 +73,17 @@ export default function ListenerSessionPage() {
         return updated
       })
       setIsLive(true)
+    })
+
+    socketRef.current.on('translationUpdate', (data: { id: string; german?: string; english?: string }) => {
+      setSegments(prev => prev.map(segment => {
+        if (segment.id !== data.id) return segment
+        return {
+          ...segment,
+          german: data.german?.trim() || segment.german,
+          english: data.english?.trim() || segment.english
+        }
+      }))
     })
 
     socketRef.current.on('sessionStatus', (data) => {
