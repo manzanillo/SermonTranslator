@@ -1034,13 +1034,6 @@ app.post('/api/forums/:id/comments', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Failed to create comment' });
   }
 });
-
-// ============================================================================
-// ERROR HANDLING
-// ============================================================================
-
-// (Note: 404 handler moved to the end of the file after all route definitions)
-
 // ============================================================================
 // PUSH NOTIFICATIONS ROUTES
 // ============================================================================

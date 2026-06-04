@@ -133,3 +133,25 @@ Für das Ende einer Session, ist bereits eine Push-Benachrichtigung eingesetzt. 
 ✅ Ist der Notification-Body unter 120 Zeichen?
 
       Ja, auch.
+
+## Bestandsaufnahme
+
+Datei                   Wofür verantwortlich?                     Zugriff auf andere Dateien?
+
+api/auth                Login/Register                            Auf api/user
+api/user                Create/Lies User                          -
+api/session             Create sessions& verify Users hierfür     Auf api/user
+api/translation         Handling von Translation-Daten & Veri-    Auf api/user & api/session
+                        fizierung von Usern & Session hierfür
+api/forums              Create/Read Forumbeiträge und stored      Auf api/forums/:id/comments
+                        die Kommentare dazu
+api/push/subscribe      Für die Web-Pushbenachrichtigungen        -
+
+### Aktuelle monolithische Mixxes
+
+- Auth Logic
+- Password reset logic
+- session management
+- translation ownership validation
+- forum CRUD
+- push subscription persistence
