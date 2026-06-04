@@ -167,3 +167,35 @@ Session entry                                             Session-JWT           
 ### Welche Contexte kommunizieren miteinander?
 
 Session braucht vom User die User Rollen zur Verifizierung. Translations braucht von Session die Session, die aber einem User zugewiesen ist.
+
+### Modulschnittstellen
+
+auth.service.js----------------------------
+
+öffentlich: getCurrentUserInfo, registerUser, loginUser, logoutUser
+intern: validatePassword, requestPasswordChange, resetPasswordWithToken
+
+forums.service.js--------------------------
+
+öffentlich: 
+intern: getAllForums, createForumPost, createComment, getSpecificComments
+
+push.service.js----------------------------
+
+öffentlich: -
+intern: savePushSubscription
+
+session.service.js-------------------------
+
+öffentlich: createSession, joinSession, endSession
+intern: getSession, getAllSession
+
+translations.service.js--------------------
+
+öffentlich: createTranslation, replaceTranslation, deleteTranslation
+intern: getAllTranslations, getTranslation
+
+users.service.js---------------------------
+
+öffentlich: createUser
+intern: getAllUser
