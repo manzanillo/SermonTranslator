@@ -203,3 +203,10 @@ intern: getAllUser
 ### Architektur-Review by Agent
 
 sendPasswordResetEmail() should be put into its own email service. Socket.io is currently emitting side effects out of session.routes.js, this should happen better in a session service or transport helper. Good news: Service layer is isolated from other modules and the most extractable module is push, followed by forums.
+
+## Deployement-Architektur
+
+Bestandteil 	Läuft als 	      Hostname (Beispiel) 	      Wird ausgeliefert von
+Frontend (React) 	statisches Build 	zermon.de 	                  Apache + .htaccess
+Backend (Express) Node.js-App       api.zermon.de 	            konsoleH Node.js
+Datenbank (SQL) 	MySQL/MariaDB 	zermonDB (auf dem Server) 	konsoleH DB-Verwaltung
