@@ -2,19 +2,10 @@ generator client {
   provider = "prisma-client-js"
 }
 datasource db {
-  provider = env("DATABASE_PROVIDER")
+  provider = mysql
   url      = env("DATABASE_URL")
 }
 
-/*
-  In development, use:
-    DATABASE_PROVIDER="sqlite"
-    DATABASE_URL="file:./dev.db"
-
-  In production, use:
-    DATABASE_PROVIDER="mysql"
-    DATABASE_URL="mysql://USER:PASSWORD@HOST:PORT/DATABASE"
-*/
 model User {
   id        Int      @id @default(autoincrement())
   name      String
