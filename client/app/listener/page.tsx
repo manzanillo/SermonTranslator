@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import AppShell from '../components/dashboard/AppShell'
 import LiveSermons from '../components/dashboard/LiveSermons'
 import { authFetch, getCachedUser, setCachedUser } from '../utils/auth'
@@ -15,7 +15,6 @@ export default function ListenerPage() {
   const [toastBody, setToastBody] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   useEffect(() => {
     const checkAuthorization = async () => {
@@ -57,12 +56,13 @@ export default function ListenerPage() {
   }, [])
 
   useEffect(() => {
-    if (searchParams.get('ended') === 'true') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('ended') === 'true') {
       setToastTitle('Session Ended')
       setToastBody('The imam has ended the current live session.')
       setShowEndedToast(true)
     }
-  }, [searchParams])
+  }, [])
 
   // Listen for push payloads from the service worker and show an in-app toast
   useEffect(() => {

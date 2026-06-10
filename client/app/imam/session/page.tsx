@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { io, Socket } from 'socket.io-client'
-import { authFetch } from '../../utils/auth'
+import { apiBaseUrl, authFetch } from '../../utils/auth'
 import { Session, Translation } from '../../types'
 
 const getSessionSegments = (translations: Translation[]) => {
@@ -63,7 +63,7 @@ export default function ActiveSessionPage() {
   useEffect(() => {
     if (!session?.id) return; // Wait until session is loaded
 
-    socketRef.current = io('http://localhost:3001') // Connect to backend
+    socketRef.current = io(apiBaseUrl) // Connect to backend
     
     // Start session on socket
     socketRef.current.emit('startSession', { sessionId: session.id })

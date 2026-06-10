@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { io, Socket } from 'socket.io-client'
-import { authFetch } from '../../utils/auth'
+import { apiBaseUrl, authFetch } from '../../utils/auth'
 import { Session } from '../../types'
 
 type Language = 'german' | 'english'
@@ -54,7 +54,7 @@ export default function ListenerSessionPage() {
   }, [])
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:3001')
+    socketRef.current = io(apiBaseUrl)
 
     socketRef.current.on('translation', (data: { id?: string; original: string; german: string; english: string }) => {
       setSegments(prev => {

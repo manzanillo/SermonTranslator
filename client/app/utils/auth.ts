@@ -1,38 +1,47 @@
+const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
+export const apiBaseUrl = API_BASE_URL
+
+export function apiUrl(url: string): string {
+  if (/^https?:\/\//.test(url)) return url
+  return `${API_BASE_URL.replace(/\/$/, '')}/${url.replace(/^\/+/, '')}`
+}
+
 export function getCachedUser(): any | null {
-  if (typeof window === 'undefined') return null;
-  const cached = sessionStorage.getItem('zermon_user');
-  return cached ? JSON.parse(cached) : null;
+  if (typeof window === 'undefined') return null
+  const cached = sessionStorage.getItem('zermon_user')
+  return cached ? JSON.parse(cached) : null
 }
 
 export function setCachedUser(user: any | null): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return
   if (user) {
-    sessionStorage.setItem('zermon_user', JSON.stringify(user));
+    sessionStorage.setItem('zermon_user', JSON.stringify(user))
   } else {
-    sessionStorage.removeItem('zermon_user');
+    sessionStorage.removeItem('zermon_user')
   }
 }
 
 export async function authFetch(url: string, options: RequestInit = {}, handle401: boolean = true): Promise<Response> {
-  const response = await fetch(url, {
+  const response = await fetch(apiUrl(url), {
     ...options,
     credentials: 'include',
-  });
+  })
 
   if (response.status === 401 && handle401) {
     // Token is invalid, clear cache, logout and redirect
-    setCachedUser(null);
+    setCachedUser(null)
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(apiUrl('/api/auth/logout'), {
         method: 'POST',
         credentials: 'include',
-      });
+      })
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Logout failed:', error)
     }
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
+    window.location.href = '/login'
+    throw new Error('Unauthorized')
   }
 
-  return response;
-}
+  return response
+}
