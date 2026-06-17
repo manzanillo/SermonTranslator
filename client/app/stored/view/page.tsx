@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { authFetch } from '../../utils/auth'
-import { Session, Translation } from '../../types'
+import { Session } from '../../types'
 
-export default function StoredSermonViewPage() {
+function StoredSermonView() {
   const router = useRouter()
-  const params = useParams()
-  const id = params.id as string
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id') ?? ''
 
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,6 +29,7 @@ export default function StoredSermonViewPage() {
       }
     }
     if (id) fetchSession()
+    else setLoading(false)
   }, [id])
 
   if (loading) {
@@ -116,8 +117,8 @@ export default function StoredSermonViewPage() {
           <button
             onClick={() => setUiLanguage('german')}
             className={`transition-colors duration-150 ${
-              uiLanguage === 'german' 
-                ? 'font-bold text-[#0c3b28]' 
+              uiLanguage === 'german'
+                ? 'font-bold text-[#0c3b28]'
                 : 'font-medium text-[#4c6e4e] hover:text-[#288C49]'
             }`}
           >
@@ -126,8 +127,8 @@ export default function StoredSermonViewPage() {
           <button
             onClick={() => setUiLanguage('english')}
             className={`transition-colors duration-150 ${
-              uiLanguage === 'english' 
-                ? 'font-bold text-[#0c3b28]' 
+              uiLanguage === 'english'
+                ? 'font-bold text-[#0c3b28]'
                 : 'font-medium text-[#4c6e4e] hover:text-[#288C49]'
             }`}
           >
@@ -136,5 +137,19 @@ export default function StoredSermonViewPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function StoredSermonViewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F4F8F5]">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#288C49] border-t-transparent" />
+        </div>
+      }
+    >
+      <StoredSermonView />
+    </Suspense>
   )
 }
